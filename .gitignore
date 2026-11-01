@@ -25,3 +25,5 @@ local.properties
 # IDE and build caches that are local to this machine.
 /.idea/
 /.kotlin/
+
+graphify-out/
