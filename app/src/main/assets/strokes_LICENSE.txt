@@ -1,0 +1,18 @@
+strokes.txt — stroke order data
+================================
+
+Source: KanjiVG, release r20260714 ("main")
+Author: Ulrich Apel and the KanjiVG contributors
+Project: https://kanjivg.tagaini.net
+Licence: Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+         https://creativecommons.org/licenses/by-sa/3.0/
+
+This file is derived from KanjiVG: each character's stroke paths were extracted, in
+drawing order, into the compact "character|path|path|…" format used by the app. It is
+not modified in shape or order, only repacked.
+
+Changes made by this project: repacking only (see app/src/main/assets/strokes.txt).
+
+KanjiVG is distributed under CC BY-SA 3.0. Any redistribution of this data, modified
+or not, must keep this attribution and the same licence. The application code around
+it is licensed separately (GPL-3.0, see the repository root).
