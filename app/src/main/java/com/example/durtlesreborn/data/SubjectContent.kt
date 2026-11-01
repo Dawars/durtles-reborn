@@ -113,6 +113,11 @@ data class LessonInfo(
     val id: Long = 0,
     /** Whether WaniKani hosts pronunciation audio for this item (vocabulary only). */
     val hasAudio: Boolean = false,
+    /** The same mnemonics and hints with WaniKani's markup kept, for the coloured details table. */
+    val meaningMnemonicMarkup: String? = null,
+    val meaningHintMarkup: String? = null,
+    val readingMnemonicMarkup: String? = null,
+    val readingHintMarkup: String? = null,
 )
 
 data class ReadingInfo(val text: String, val type: String?, val primary: Boolean, val accepted: Boolean)
@@ -128,6 +133,7 @@ internal fun stripMarkup(text: String): String =
 
 fun SubjectContent.lessonInfo(title: String, type: String, level: Int, id: Long = 0): LessonInfo {
     fun text(name: String) = (rawData[name] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let(::stripMarkup)
+    fun markup(name: String) = (rawData[name] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
     val primaryFirst = compareByDescending<Meaning> { it.acceptedAnswer }
     return LessonInfo(
         title = title,
@@ -142,6 +148,10 @@ fun SubjectContent.lessonInfo(title: String, type: String, level: Int, id: Long 
         meaningHint = text("meaning_hint"),
         readingMnemonic = text("reading_mnemonic"),
         readingHint = text("reading_hint"),
+        meaningMnemonicMarkup = markup("meaning_mnemonic"),
+        meaningHintMarkup = markup("meaning_hint"),
+        readingMnemonicMarkup = markup("reading_mnemonic"),
+        readingHintMarkup = markup("reading_hint"),
         partsOfSpeech = (rawData["parts_of_speech"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull } ?: emptyList(),
         contextSentences = (rawData["context_sentences"] as? JsonArray)?.mapNotNull { s ->
             val o = s as? JsonObject ?: return@mapNotNull null

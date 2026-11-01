@@ -2,8 +2,6 @@ package com.example.durtlesreborn.data
 
 import com.example.durtlesreborn.notify.AlertContext
 import com.example.durtlesreborn.session.SubjectKind
-import com.example.durtlesreborn.ui.filledSegments
-import com.example.durtlesreborn.ui.nextReviewText
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -93,31 +91,6 @@ class DashboardTest {
         assertEquals(listOf(15), days[2].rows.map { it.cumulative })
         assertTrue(days[3].rows.isEmpty())
         assertEquals(3, days[0].total + 0)
-    }
-
-    @Test
-    fun nextReviewTextCoversEveryState() {
-        fun tile(stage: Int?, unlocked: Boolean = true, at: Long? = null) =
-            LevelTile(1, SubjectKind.KANJI, "水", "すい", "Water", stage, unlocked, at)
-        assertEquals("Locked", nextReviewText(tile(null, unlocked = false), now))
-        assertEquals("Not started", nextReviewText(tile(null), now))
-        assertEquals("Not started", nextReviewText(tile(0), now))
-        assertEquals("Burned", nextReviewText(tile(9), now))
-        assertEquals("N/A", nextReviewText(tile(4, at = null), now))
-        assertEquals("Available now", nextReviewText(tile(4, at = now - hour), now))
-        assertEquals("in 3 h", nextReviewText(tile(4, at = now + 3 * hour), now))
-    }
-
-    @Test
-    fun progressSegmentsFollowTheStage() {
-        assertEquals(0, filledSegments(null))
-        assertEquals(0, filledSegments(0))
-        assertEquals(1, filledSegments(1))
-        assertEquals(3, filledSegments(5))
-        assertEquals(5, filledSegments(9))
-        assertEquals(5, filledSegments(12))
-        // Never decreases as the stage rises.
-        assertTrue((0..9).map { filledSegments(it) }.zipWithNext().all { (a, b) -> a <= b })
     }
 
     private class FakeStats(

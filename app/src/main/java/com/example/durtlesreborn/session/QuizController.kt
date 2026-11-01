@@ -13,6 +13,11 @@ data class QuizCard(
     /** Reading questions take kana input; the screen converts romaji while typing. */
     val kanaInput: Boolean,
     val answers: SubjectAnswers,
+    /** The item's SRS stage index, 0 for a lesson. */
+    val stage: Int = 0,
+    /** Whether the other question of this item was already asked, so its answer may be shown. */
+    val meaningAttempted: Boolean = false,
+    val readingAttempted: Boolean = false,
 )
 
 /** Result of submitting an answer. [retry] means nothing was recorded and the user may try again. */
@@ -81,6 +86,9 @@ class QuizController(
             kind = question.kind,
             kanaInput = question.kind.kana,
             answers = answers[question.item.id] ?: SubjectAnswers(),
+            stage = question.item.srsStageIndex,
+            meaningAttempted = question.item.isDone(1) || question.item.incorrectMeaning > 0,
+            readingAttempted = (2..4).any { question.item.isDone(it) } || question.item.incorrectReading > 0,
         )
     }
 
@@ -102,6 +110,14 @@ class QuizController(
         val played = engine.items.filter { !it.abandoned }
         return played.size to played.count { !it.active && it.totalIncorrect == 0 }
     }
+
+    /** Items answered wrongly at least once: subject id, and whether the meaning and the reading were missed. */
+    fun mistakes(): List<Triple<Long, Boolean, Boolean>> =
+        engine.items.filter { !it.abandoned && it.totalIncorrect > 0 }
+            .map { Triple(it.id, it.incorrectMeaning > 0, it.incorrectReading > 0) }
+
+    /** The subject ids of a lesson's cards, in order. */
+    val lessonItemIds: List<Long> get() = engine.items.map { it.id }
 
     /** Moves on after an answer was shown. */
     fun next() = engine.advance()

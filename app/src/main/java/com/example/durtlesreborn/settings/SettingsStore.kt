@@ -26,12 +26,16 @@ data class AppSettings(
      * After a wrong answer, reveal the accepted answer. Off by default: the answer stays hidden and
      * the details sheet (swipe up on the question) is how it is looked at.
      */
-    val showAnswerOnWrong: Boolean = false,
+    val showAnswerOnWrong: Boolean = true,
     /**
      * Keep the answer field focused and the keyboard up while the answer is shown, so the next
      * answer needs no extra tap. Off collapses the keyboard after every answer.
      */
     val keepKeyboardOpen: Boolean = true,
+    /** The SRS dots on the review screen's prompt strip. */
+    val showSrsIndicator: Boolean = true,
+    /** SYSTEM, LIGHT or DARK. */
+    val interfaceStyle: String = "SYSTEM",
     val enableBackgroundSync: Boolean = false,
     val syncOnOpen: Boolean = false,
     /** Hold results until the session is finished instead of sending each item as it is done. */
@@ -81,6 +85,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val closeEnough = stringPreferencesKey("close_enough_action")
         val onYomiKatakana = booleanPreferencesKey("require_onyomi_in_katakana")
         val showAnswerOnWrong = booleanPreferencesKey("show_answer_on_wrong")
+        val showSrsIndicator = booleanPreferencesKey("show_srs_indicator")
+        val interfaceStyle = stringPreferencesKey("interface_style")
         val keepKeyboardOpen = booleanPreferencesKey("keep_keyboard_open")
         val backgroundSync = booleanPreferencesKey("enable_background_sync")
         val syncOnOpen = booleanPreferencesKey("sync_on_open")
@@ -112,6 +118,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
                 ?: d.closeEnoughAction,
             requireOnYomiInKatakana = p[Keys.onYomiKatakana] ?: d.requireOnYomiInKatakana,
             showAnswerOnWrong = p[Keys.showAnswerOnWrong] ?: d.showAnswerOnWrong,
+            showSrsIndicator = p[Keys.showSrsIndicator] ?: d.showSrsIndicator,
+            interfaceStyle = p[Keys.interfaceStyle] ?: d.interfaceStyle,
             keepKeyboardOpen = p[Keys.keepKeyboardOpen] ?: d.keepKeyboardOpen,
             enableBackgroundSync = p[Keys.backgroundSync] ?: d.enableBackgroundSync,
             syncOnOpen = p[Keys.syncOnOpen] ?: d.syncOnOpen,
@@ -148,6 +156,8 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             p[Keys.closeEnough] = next.closeEnoughAction.name
             p[Keys.onYomiKatakana] = next.requireOnYomiInKatakana
             p[Keys.showAnswerOnWrong] = next.showAnswerOnWrong
+            p[Keys.showSrsIndicator] = next.showSrsIndicator
+            p[Keys.interfaceStyle] = next.interfaceStyle
             p[Keys.keepKeyboardOpen] = next.keepKeyboardOpen
             p[Keys.backgroundSync] = next.enableBackgroundSync
             p[Keys.syncOnOpen] = next.syncOnOpen

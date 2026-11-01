@@ -71,6 +71,10 @@ class SessionRepository(
         return SubjectContent.parse(subject.json).answers(synonyms)
     }
 
+    /** The stored subjects, for when only their titles and kinds are needed. */
+    suspend fun subjectsById(subjectIds: List<Long>): Map<Long, SubjectEntity> =
+        subjectIds.chunked(500).flatMap { subjects.byIds(it) }.associateBy { it.id }
+
     /** What to show on the lesson card for a subject. */
     suspend fun lessonInfoFor(subjectId: Long): LessonInfo? {
         val subject = subjects.byId(subjectId) ?: return null

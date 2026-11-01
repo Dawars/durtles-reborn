@@ -1,46 +1,40 @@
+// Based on Tsurukame (ios/MainViewController.swift, MainTitleView.swift, UpcomingReviewsChartItem.swift, CurrentLevelChartItem.swift),
+// Copyright David Sansome, Apache License 2.0: see assets/TSURUKAME-LICENSE.txt.
+// Rewritten in Kotlin and changed for this app.
 package com.example.durtlesreborn.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import android.text.format.DateFormat
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,98 +42,85 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
+import com.example.durtlesreborn.R
 import com.example.durtlesreborn.data.BreakdownRow
-import com.example.durtlesreborn.data.DayForecast
 import com.example.durtlesreborn.data.Dashboard
+import com.example.durtlesreborn.data.DayForecast
 import com.example.durtlesreborn.data.HeatMonth
-import com.example.durtlesreborn.data.LevelProgress
+import com.example.durtlesreborn.data.LevelEstimates
 import com.example.durtlesreborn.data.LevelTile
 import com.example.durtlesreborn.data.StageGroup
 import com.example.durtlesreborn.data.heatLevel
 import com.example.durtlesreborn.session.SessionType
-import com.example.durtlesreborn.session.SubjectKind
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.Locale
 import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.min
+import kotlin.math.sin
 
 data class DashboardActions(
     val startReviews: () -> Unit,
     val startLessons: () -> Unit,
     val openSearch: () -> Unit,
     val openLevels: (Int?) -> Unit,
+    val openRemaining: (Int?) -> Unit,
     val openSettings: () -> Unit,
     val openStats: () -> Unit,
     val openStage: (StageGroup) -> Unit,
-    val openItem: (Long) -> Unit,
     val refresh: () -> Unit,
     val dismissMessage: () -> Unit,
     val resumeSession: () -> Unit,
     val discardSession: () -> Unit,
 )
 
-/** What a tile's long-press card says about when it is next reviewed. */
-fun nextReviewText(tile: LevelTile, now: Long): String = when {
-    !tile.unlocked -> "Locked"
-    tile.stage == null || tile.stage == 0 -> "Not started"
-    StageGroup.of(tile.stage) == StageGroup.BURNED -> "Burned"
-    tile.nextReviewAt == null -> "N/A"
-    tile.nextReviewAt <= now -> "Available now"
-    else -> formatUntil(tile.nextReviewAt - now)
-}
-
-/** How many of a tile's five progress segments are filled, from its SRS stage. */
-fun filledSegments(stage: Int?): Int = if (stage == null || stage <= 0) 0 else ceil(stage.coerceAtMost(9) * 5 / 9.0).toInt()
-
+/**
+ * Tsurukame's home screen: the turtle engraving behind a grouped table, with the blue header above
+ * it. Sections and rows follow its `MainWaniKaniTabViewController`.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(state: UiState.Home, a: DashboardActions) {
+    val tk = LocalTk.current
     val d = state.dashboard
-    Column(Modifier.fillMaxSize()) {
-        DashboardTopBar(d?.level, d?.username, a)
-        if (state.syncing) SyncStrip(state.progress)
-        if (state.dryRun) DryRunStrip()
-        state.message?.let { MessageBanner(it, a.dismissMessage) }
-        PullToRefreshBox(isRefreshing = state.syncing, onRefresh = a.refresh, modifier = Modifier.weight(1f)) {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                val wide = maxWidth >= 600.dp
-                Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+    val now = remember(d) { System.currentTimeMillis() }
+    Box(Modifier.fillMaxSize().background(tk.background)) {
+        Image(painterResource(R.drawable.tk_launch_screen), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.25f)
+        Column(Modifier.fillMaxSize()) {
+            HomeHeader(d, state.syncing, a)
+            PullToRefreshBox(isRefreshing = state.syncing, onRefresh = a.refresh, modifier = Modifier.weight(1f)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
+                    state.message?.let { message ->
+                        TkSection { TkRow(message, subtitle = "Tap to dismiss", onClick = a.dismissMessage) }
+                    }
+                    if (state.dryRun) {
+                        TkSection { TkRow("Dry run is on", subtitle = "Sessions are not saved or sent to WaniKani.", titleColor = TkFixed.red) }
+                    }
                     if (d == null) {
-                        Column(Modifier.fillMaxWidth().padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            CircularProgressIndicator()
-                            Text(
-                                state.progress ?: if (state.syncing) "Connecting to WaniKani…" else "Loading…",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (state.syncing) {
-                                Text(
-                                    "The first sync downloads all your items and can take a few minutes.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        FirstSync(state)
                     } else {
-                        state.saved?.let { ResumeCard(it, a) }
-                        DashboardContent(d, wide, a, state.textStageLabels)
+                        HomeTable(d, state.saved, now, a)
                     }
                 }
             }
@@ -147,222 +128,277 @@ fun DashboardScreen(state: UiState.Home, a: DashboardActions) {
     }
 }
 
+/** The gradient bar: avatar, name, level and learned kanji, then search and settings. */
 @Composable
-private fun DashboardTopBar(level: Int?, username: String?, a: DashboardActions) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { a.openLevels(level) }
-                .semantics { contentDescription = "Level ${level ?: "unknown"}. Open the level browser" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(level?.toString() ?: "–", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+private fun HomeHeader(d: Dashboard?, syncing: Boolean, a: DashboardActions) {
+    val tk = LocalTk.current
+    val learned = d?.breakdown.orEmpty().filter { it.group >= StageGroup.GURU }.sumOf { it.kanji }
+    Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(tk.headerGradient)).statusBarsPadding()) {
+        Row(Modifier.fillMaxWidth().height(58.dp).padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painterResource(R.drawable.tk_avatar),
+                null,
+                Modifier.size(42.dp).shadow(4.dp, CircleShape).clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    d?.username ?: "Durtles Reborn",
+                    maxLines = 1,
+                    style = TextStyle(color = Color.White, fontSize = 22.sp, lineHeight = 27.sp, shadow = Shadow(Color.Black.copy(alpha = 0.4f), Offset(0f, 2f), 8f)),
+                )
+                if (d?.level != null) {
+                    Text(
+                        "Level ${d.level} \u00B7 learned $learned kanji",
+                        maxLines = 1,
+                        style = TextStyle(color = Color.White, fontSize = 13.sp, lineHeight = 16.sp, shadow = Shadow(Color.Black.copy(alpha = 0.2f), Offset(0f, 2f), 4f)),
+                    )
+                }
+            }
+            HeaderButton(R.drawable.tk_search, "Search", a.openSearch)
+            HeaderButton(R.drawable.tk_settings, "Settings", a.openSettings)
         }
-        Text(
-            username ?: "Durtles Reborn",
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-        )
-        IconButton(onClick = a.openSearch) { Icon(AppIcons.Search, "Search") }
-        IconButton(onClick = { a.openLevels(level) }) { Icon(AppIcons.Book, "Levels") }
-        IconButton(onClick = a.openSettings) { Icon(AppIcons.Settings, "Settings") }
+        if (syncing) LinearProgressIndicator(Modifier.fillMaxWidth().height(4.dp), color = Color.White, trackColor = Color.White.copy(alpha = 0.3f))
     }
 }
 
 @Composable
-private fun SyncStrip(progress: String?) {
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            progress ?: "Syncing…",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-        )
+private fun HeaderButton(icon: Int, description: String, onClick: () -> Unit) {
+    Box(Modifier.size(44.dp).clickable(onClick = onClick).semantics { contentDescription = description }, Alignment.Center) {
+        Image(painterResource(icon), null, Modifier.size(26.dp), colorFilter = ColorFilter.tint(Color.White))
     }
 }
 
 @Composable
-private fun DryRunStrip() {
-    Surface(color = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            "Dry run is on: sessions are not saved or sent to WaniKani.",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+private fun FirstSync(state: UiState.Home) {
+    Column(Modifier.fillMaxWidth().padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        CircularProgressIndicator()
+        TkText(state.progress ?: if (state.syncing) "Connecting to WaniKani\u2026" else "Loading\u2026", size = 15.sp)
+        if (state.syncing) TkText("The first sync downloads all your items and can take a few minutes.", size = 13.sp, color = LocalTk.current.grey33)
     }
 }
 
 @Composable
-private fun MessageBanner(message: String, onDismiss: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(message, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 8.dp))
-            IconButton(onClick = onDismiss) { Icon(AppIcons.Close, "Dismiss") }
+private fun HomeTable(d: Dashboard, saved: SavedSession?, now: Long, a: DashboardActions) {
+    val tk = LocalTk.current
+    TkSection("Currently available") {
+        if (saved != null) ResumeRows(saved, a)
+        CountRow("Lessons", d.counts.lessonsAvailable, a.startLessons)
+        CountRow("Reviews", d.counts.reviewsDue, a.startReviews)
+    }
+    TkSection("Upcoming reviews") {
+        UpcomingChart(d.days, d.counts.reviewsDue, now, Modifier.clickable(onClick = a.openStats))
+        val level = d.level ?: 1
+        val next = LevelEstimates.nextLevelUpReview(d.radicals, d.kanji, level, now)
+        TkRow("Next level-up review", value = next?.let { LevelEstimates.format(it, now) } ?: "N/A")
+    }
+    TkSection("Current level") {
+        Row(Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 16.dp)) {
+            LevelPie(d.radicals, tk.radical[1], Modifier.weight(1f))
+            LevelPie(d.kanji, tk.kanji[1], Modifier.weight(1f))
+            LevelPie(d.vocabulary, tk.vocabulary[1], Modifier.weight(1f))
         }
+        val remaining = LevelEstimates.timeRemaining(d.radicals, d.kanji, d.level ?: 1, now)
+        if (remaining != null) {
+            TkRow(
+                if (remaining.second) "Time remaining (estimated)" else "Time remaining",
+                value = LevelEstimates.format(remaining.first, now),
+            )
+        }
+        TkRow("Show remaining", chevron = true, onClick = { a.openRemaining(d.level) })
+        TkRow("Show all", chevron = true, onClick = { a.openLevels(d.level) })
+    }
+    TkSection("All levels") {
+        for (group in listOf(StageGroup.APPRENTICE, StageGroup.GURU, StageGroup.MASTER, StageGroup.ENLIGHTENED, StageGroup.BURNED)) {
+            val count = d.breakdown.firstOrNull { it.group == group }?.total ?: 0
+            TkRow(
+                group.label,
+                value = "$count",
+                titleColor = tk.stage(group),
+                chevron = count > 0,
+                onClick = if (count > 0) ({ a.openStage(group) }) else null,
+                leading = { StageIcon(group) },
+            )
+        }
+        TkRow("Statistics", chevron = true, onClick = a.openStats)
+    }
+    if (d.activity.isNotEmpty()) {
+        TkSection("Activity") { ActivityHeatmap(d.activity) }
     }
 }
 
+/** A count that opens a session, greyed out at zero. */
 @Composable
-private fun DashboardContent(d: Dashboard, wide: Boolean, a: DashboardActions, stageText: Boolean) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ActionCard("Lessons", d.counts.lessonsAvailable, LocalActionColors.current.lessons, Modifier.weight(1f), a.startLessons, lessons = true)
-        ActionCard("Reviews", d.counts.reviewsDue, LocalActionColors.current.reviews, Modifier.weight(1f), a.startReviews, lessons = false)
-    }
-    d.progress?.let { LevelPill(it) { a.openLevels(it.level) } }
-    val palette = LocalSubjectColors.current
-    // The legend sits with the forecast, just above it, so it explains the tile bars without
-    // pushing the Radicals and Kanji cards down the screen. Stage names need no legend.
-    val showLegend = !stageText && (d.radicals.isNotEmpty() || d.kanji.isNotEmpty())
-    if (wide) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TileCard("Radicals", d.radicals, palette.radical, Modifier.weight(1f), a.openItem, stageText)
-            TileCard("Kanji", d.kanji, palette.kanji, Modifier.weight(1f), a.openItem, stageText)
-        }
-        if (showLegend) StageLegend()
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ForecastCard(d.days, Modifier.weight(1f), a.openStats)
-            StageTiles(d.breakdown, Modifier.weight(1f), a.openStage)
-        }
-        ActivityHeatmap(d.activity)
-    } else {
-        TileCard("Radicals", d.radicals, palette.radical, Modifier.fillMaxWidth(), a.openItem, stageText)
-        TileCard("Kanji", d.kanji, palette.kanji, Modifier.fillMaxWidth(), a.openItem, stageText)
-        if (showLegend) StageLegend()
-        ForecastCard(d.days, Modifier.fillMaxWidth(), a.openStats)
-        StageTiles(d.breakdown, Modifier.fillMaxWidth(), a.openStage)
-        ActivityHeatmap(d.activity)
-    }
+private fun CountRow(title: String, count: Int, onClick: () -> Unit) {
+    TkRow(title, value = "$count", chevron = true, enabled = count > 0, onClick = onClick)
 }
 
 /** Offers to carry on with a session that was left unfinished, or to throw it away. */
 @Composable
-private fun ResumeCard(saved: SavedSession, a: DashboardActions) {
+private fun ResumeRows(saved: SavedSession, a: DashboardActions) {
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
-    val what = if (saved.type == SessionType.LESSON) "Lessons" else "Reviews"
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("$what in progress", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            Text(
-                "${saved.doneItems} of ${saved.totalItems} items done. Nothing is sent until you finish or wrap up.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = a.resumeSession) { Text("Resume") }
-                TextButton(onClick = { confirmDiscard = true }) { Text("Discard") }
-            }
-        }
-    }
+    val what = if (saved.type == SessionType.LESSON) "lessons" else "reviews"
+    TkRow("Resume $what", value = "${saved.doneItems}/${saved.totalItems}", chevron = true, titleColor = TkFixed.tint, onClick = a.resumeSession)
+    TkRow("Discard saved session", titleColor = TkFixed.red, onClick = { confirmDiscard = true })
     if (confirmDiscard) {
-        AlertDialog(
-            onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard this session?") },
-            text = { Text("The answers you gave in it are lost. The items stay due, and nothing is sent.") },
-            confirmButton = { TextButton(onClick = { confirmDiscard = false; a.discardSession() }) { Text("Discard") } },
-            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Keep") } },
+        TkActionSheet(
+            title = "Discard this session?",
+            message = "The answers you gave in it are lost. The items stay due, and nothing is sent.",
+            action = "Discard",
+            onAction = {
+                confirmDiscard = false
+                a.discardSession()
+            },
+            onDismiss = { confirmDiscard = false },
         )
     }
 }
 
-/** A big tappable card for lessons or reviews. Grey when there is nothing to do. */
+private const val HOUR_MILLIS = 3_600_000L
+private const val CHART_HOURS = 48
+
+/** Reviews in each of the next [CHART_HOURS] hours, starting with the next full hour. */
+internal fun upcomingHours(days: List<DayForecast>, now: Long): IntArray {
+    val counts = IntArray(CHART_HOURS)
+    val thisHour = now - now % HOUR_MILLIS
+    for (day in days) {
+        for (row in day.rows) {
+            val index = ((row.startMillis - thisHour) / HOUR_MILLIS).toInt() - 1
+            if (index in 0 until CHART_HOURS) counts[index] += row.count
+        }
+    }
+    return counts
+}
+
+/** The largest axis value and the step between grid lines, in round numbers. */
+private fun niceAxis(max: Int): Pair<Int, Int> {
+    val target = max.coerceAtLeast(5)
+    val step = listOf(1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000).firstOrNull { target / it <= 5 } ?: 10000
+    return (ceil(target.toDouble() / step).toInt() * step) to step
+}
+
+/** Bars for the reviews in each hour on their own scale, a line for the running total on the axis' scale. */
 @Composable
-private fun ActionCard(title: String, count: Int, color: Color, modifier: Modifier, onClick: () -> Unit, lessons: Boolean) {
-    val enabled = count > 0
-    val background = if (enabled) color else MaterialTheme.colorScheme.surfaceVariant
-    val content = if (enabled) contentColorOn(color) else MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier.height(120.dp).clip(RoundedCornerShape(16.dp)).background(background)
-            .clickable(enabled = enabled, onClick = onClick)
-            .semantics { contentDescription = "$title: $count" },
-    ) {
-        // Own artwork: a book for lessons, a pencil for reviews.
-        Icon(
-            if (lessons) AppIcons.Book else AppIcons.Pencil,
-            contentDescription = null,
-            tint = content.copy(alpha = 0.18f),
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = 14.dp, end = 18.dp).size(42.dp),
-        )
-        Text(
-            title, color = content, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
-        )
-        Box(
-            Modifier.align(Alignment.BottomEnd).padding(12.dp).clip(CircleShape)
-                .background(if (enabled) Color.White else MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-        ) {
-            Text(
-                count.toString(),
-                color = if (enabled) Color(0xFF14130F) else MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-            )
+private fun UpcomingChart(days: List<DayForecast>, dueNow: Int, now: Long, modifier: Modifier = Modifier) {
+    val tk = LocalTk.current
+    val measurer = rememberTextMeasurer()
+    val hours = remember(days, now) { upcomingHours(days, now) }
+    val locale = Locale.getDefault()
+    val formatter = remember(locale) { DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "ha"), locale) }
+    val axisStyle = TextStyle(color = tk.label, fontSize = 10.sp)
+    val valueStyle = TextStyle(color = tk.label, fontSize = 8.sp)
+    val lineColor = tk.vocabulary[1]
+    val barColor = tk.radical[1]
+    val gridColor = tk.grey80
+    Canvas(modifier.fillMaxWidth().height(120.dp).padding(horizontal = 16.dp, vertical = 11.dp).semantics { contentDescription = "Upcoming reviews. Opens the statistics" }) {
+        val cumulative = IntArray(CHART_HOURS + 1)
+        cumulative[0] = dueNow
+        for (i in hours.indices) cumulative[i + 1] = cumulative[i] + hours[i]
+        val (axisMax, step) = niceAxis(cumulative.last())
+        val barMax = (hours.maxOrNull() ?: 0).coerceAtLeast(1) * 1.15f
+        val left = 28.dp.toPx()
+        val bottomSpace = 15.dp.toPx()
+        val chartWidth = size.width - left
+        val chartHeight = size.height - bottomSpace
+        val slot = chartWidth / (CHART_HOURS + 1)
+        var tick = 0
+        while (tick <= axisMax) {
+            val y = chartHeight * (1f - tick.toFloat() / axisMax)
+            drawLine(gridColor, Offset(left, y), Offset(size.width, y), 0.5.dp.toPx())
+            drawLabel(measurer, "$tick", axisStyle, Offset(left - 4.dp.toPx(), y), alignEnd = true)
+            tick += step
+        }
+        for (i in hours.indices) {
+            if (hours[i] <= 0) continue
+            val x = left + slot * (i + 1)
+            val height = chartHeight * hours[i] / barMax
+            drawRect(barColor, Offset(x + slot * 0.08f, chartHeight - height), Size(slot * 0.84f, height))
+            drawLabel(measurer, "${hours[i]}", valueStyle, Offset(x + slot / 2, chartHeight - height - 6.dp.toPx()), centred = true)
+        }
+        var previous: Offset? = null
+        for (i in cumulative.indices) {
+            val point = Offset(left + slot * i + slot / 2, chartHeight * (1f - cumulative[i].toFloat() / axisMax))
+            previous?.let { drawLine(lineColor, it, point, 1.dp.toPx()) }
+            drawCircle(lineColor, 1.5.dp.toPx(), point)
+            previous = point
+        }
+        val thisHour = now - now % HOUR_MILLIS
+        for (i in 8 until CHART_HOURS + 1 step 8) {
+            val time = Instant.ofEpochMilli(thisHour + i * HOUR_MILLIS).atZone(ZoneId.systemDefault())
+            drawLabel(measurer, formatter.format(time), axisStyle, Offset(left + slot * i + slot / 2, size.height - 6.dp.toPx()), centred = true)
         }
     }
 }
 
-/** "27 of 36 kanji passed" as a bar, with a mark where 90% (enough to level up) is. */
-@Composable
-private fun LevelPill(p: LevelProgress, onClick: () -> Unit) {
-    val fraction = if (p.totalKanji == 0) 0f else p.passedKanji.toFloat() / p.totalKanji
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val fill = MaterialTheme.colorScheme.primaryContainer
-    val mark = MaterialTheme.colorScheme.primary
-    Box(
-        Modifier.fillMaxWidth().height(44.dp).clip(CircleShape).background(track).clickable(onClick = onClick)
-            .semantics { contentDescription = "${p.passedKanji} of ${p.totalKanji} kanji passed. ${p.neededKanji} are needed to level up." },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).align(Alignment.CenterStart).background(fill))
-        Canvas(Modifier.fillMaxSize()) {
-            val x = size.width * LevelProgress.LEVEL_UP_SHARE.toFloat()
-            drawRoundRect(mark, Offset(x, size.height * 0.2f), Size(2.dp.toPx(), size.height * 0.6f), CornerRadius(1.dp.toPx()))
-        }
-        Text("${p.passedKanji} of ${p.totalKanji} kanji passed", style = MaterialTheme.typography.bodyLarge)
+private fun DrawScope.drawLabel(
+    measurer: TextMeasurer,
+    text: String,
+    style: TextStyle,
+    at: Offset,
+    alignEnd: Boolean = false,
+    centred: Boolean = false,
+) {
+    val layout = measurer.measure(text, style)
+    val x = when {
+        alignEnd -> at.x - layout.size.width
+        centred -> at.x - layout.size.width / 2f
+        else -> at.x
     }
+    drawText(layout, topLeft = Offset(x.coerceAtLeast(0f), at.y - layout.size.height / 2f))
 }
 
 /**
- * Key for the five bars under every radical and kanji tile: the bar fills in five steps as the
- * item climbs the SRS stages, and its colour is the stage the item is in now.
+ * One level pie: locked items in light grey, lessons in darker grey, Apprentice in a paler shade of
+ * the subject's colour and Guru or better in the full colour.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StageLegend() {
-    val stages = LocalStageColors.current
-    val keys = listOf(
-        "Apprentice" to stages.apprentice,
-        "Guru" to stages.guru,
-        "Master" to stages.master,
-        "Enlightened" to stages.enlightened,
-        "Burned" to stages.burned,
-    )
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            for ((label, color) in keys) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Box(Modifier.size(width = 14.dp, height = 5.dp).clip(RoundedCornerShape(2.dp)).background(color))
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+private fun LevelPie(tiles: List<LevelTile>, base: Color, modifier: Modifier) {
+    val tk = LocalTk.current
+    val measurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(color = tk.label, fontSize = 10.sp)
+    val slices = remember(tiles, base) {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(base.toArgb(), hsv)
+        val pale = Color.hsv(hsv[0], hsv[1] * 0.6f, hsv[2])
+        listOf(
+            tiles.count { !it.unlocked } to Color(0xFFCCCCCC),
+            tiles.count { it.unlocked && (it.stage ?: 0) == 0 } to Color(0xFF999999),
+            tiles.count { (it.stage ?: 0) in 1..4 } to pale,
+            tiles.count { (it.stage ?: 0) >= 5 } to base,
+        ).filter { it.first > 0 }
+    }
+    val total = slices.sumOf { it.first }
+    val hole = tk.cell
+    Canvas(modifier.fillMaxSize().padding(vertical = 8.dp)) {
+        if (total == 0) return@Canvas
+        val radius = min(size.width, size.height) / 2f
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val topLeft = center - Offset(radius, radius)
+        var angle = -90f
+        for ((count, color) in slices) {
+            val sweep = 360f * count / total
+            drawArc(color, angle, sweep, useCenter = true, topLeft = topLeft, size = Size(radius * 2, radius * 2))
+            angle += sweep
         }
-        Text(
-            "The five bars under each item fill as it climbs these stages; the colour is the stage it is in now.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        angle = -90f
+        for ((count, _) in slices) {
+            val edge = Math.toRadians(angle.toDouble())
+            if (slices.size > 1) drawLine(hole, center, center + Offset(cos(edge).toFloat() * radius, sin(edge).toFloat() * radius), 1.dp.toPx())
+            angle += 360f * count / total
+        }
+        drawCircle(hole.copy(alpha = 0.41f), radius * 0.55f, center)
+        drawCircle(hole, radius * 0.2f, center)
+        angle = -90f
+        for ((count, _) in slices) {
+            val sweep = 360f * count / total
+            val middle = Math.toRadians((angle + sweep / 2).toDouble())
+            drawLabel(measurer, "$count", labelStyle, center + Offset(cos(middle).toFloat() * radius * 0.6f, sin(middle).toFloat() * radius * 0.6f), centred = true)
+            angle += sweep
+        }
     }
 }
 
-/**
- * A contribution-style heatmap of the items passed or burned each day: six rows, one per month
- * (oldest first), each row one cell per day of that month. Day numbers sit above the first row.
- */
 @Composable
 private fun ActivityHeatmap(months: List<HeatMonth>) {
     if (months.isEmpty()) return
@@ -436,232 +472,5 @@ private fun ActivityHeatmap(months: List<HeatMonth>) {
                 color = muted,
             )
         }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TileCard(
-    title: String,
-    tiles: List<LevelTile>,
-    color: Color,
-    modifier: Modifier,
-    onOpen: (Long) -> Unit,
-    stageText: Boolean,
-) {
-    var showDetails by rememberSaveable(title) { mutableStateOf(false) }
-    Surface(modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                // The eye reveals the meaning (and reading) under every tile in this card.
-                IconButton(onClick = { showDetails = !showDetails }) {
-                    Icon(
-                        if (showDetails) AppIcons.Visibility else AppIcons.VisibilityOff,
-                        if (showDetails) "Hide meanings and readings" else "Show meanings and readings",
-                    )
-                }
-            }
-            if (tiles.isEmpty()) {
-                Text("Nothing here yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                FlowRow(
-                    Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    for (tile in tiles) SubjectTile(tile, color, onOpen, stageText, showDetails)
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SubjectTile(tile: LevelTile, color: Color, onOpen: (Long) -> Unit, stageText: Boolean, showDetails: Boolean) {
-    var peek by remember { mutableStateOf(false) }
-    val bg = if (tile.unlocked) color else LocalActionColors.current.locked
-    val fg = contentColorOn(bg)
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = if (showDetails) Modifier.width(64.dp) else Modifier) {
-        Box(
-            Modifier.size(52.dp).clip(RoundedCornerShape(8.dp)).background(bg)
-                .combinedClickable(onClick = { onOpen(tile.id) }, onLongClick = { peek = true })
-                .semantics { contentDescription = "${tile.title}, ${tile.meaning}, ${nextReviewText(tile, System.currentTimeMillis())}" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                tile.title, color = fg, maxLines = 1, softWrap = false, textAlign = TextAlign.Center,
-                fontSize = when (tile.title.length) { 1 -> 26.sp; 2 -> 20.sp; else -> 11.sp },
-            )
-            DropdownMenu(expanded = peek, onDismissRequest = { peek = false }) { PeekCard(tile) }
-        }
-        if (showDetails) {
-            val muted = MaterialTheme.colorScheme.onSurfaceVariant
-            tile.reading?.takeIf { it.isNotBlank() }?.let { reading ->
-                Text(
-                    reading,
-                    fontSize = 8.sp,
-                    lineHeight = 10.sp,
-                    color = muted,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                )
-            }
-            Text(
-                tile.meaning.ifBlank { "—" },
-                fontSize = 9.sp,
-                lineHeight = 11.sp,
-                color = muted,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 1.dp),
-            )
-        }
-        if (stageText) {
-            // Height is reserved even for blanks so a row of tiles stays aligned.
-            Text(
-                if (tile.unlocked) stageLabel(tile.stage).orEmpty() else "",
-                fontSize = 8.sp,
-                lineHeight = 10.sp,
-                color = stageColor(tile.stage),
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-        } else {
-            StageBar(tile)
-        }
-    }
-}
-
-/**
- * The SRS stage as the short text used when the five bars are off: A1–A4, G1–G2, Master,
- * Enlightened and Burned. Null for an item that has not been started.
- */
-internal fun stageLabel(stage: Int?): String? = when {
-    stage == null || stage <= 0 -> null
-    stage <= 4 -> "A$stage"
-    stage <= 6 -> "G${stage - 4}"
-    stage == 7 -> "Master"
-    stage == 8 -> "Enlightened"
-    else -> "Burned"
-}
-
-/** The theme's colour for the item's SRS stage group. */
-@Composable
-private fun stageColor(stage: Int?): Color {
-    val stages = LocalStageColors.current
-    return when (StageGroup.of(stage)) {
-        StageGroup.NOT_STARTED, StageGroup.APPRENTICE -> stages.apprentice
-        StageGroup.GURU -> stages.guru
-        StageGroup.MASTER -> stages.master
-        StageGroup.ENLIGHTENED -> stages.enlightened
-        StageGroup.BURNED -> stages.burned
-    }
-}
-
-/** Five small segments under a tile, filled as the item climbs the SRS stages. */
-@Composable
-private fun StageBar(tile: LevelTile) {
-    val filled = if (tile.unlocked) filledSegments(tile.stage) else 0
-    val color = stageColor(tile.stage)
-    Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        for (i in 0 until 5) {
-            Box(
-                Modifier.size(width = 8.dp, height = 3.dp).clip(RoundedCornerShape(1.dp))
-                    .background(if (i < filled) color else MaterialTheme.colorScheme.outlineVariant),
-            )
-        }
-    }
-}
-
-/** The card shown on long-press: the item, its reading and meaning, and when it is next reviewed. */
-@Composable
-private fun PeekCard(tile: LevelTile) {
-    Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(tile.title, fontSize = 36.sp, style = MaterialTheme.typography.headlineMedium)
-        tile.reading?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
-        Text(tile.meaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(nextReviewText(tile, System.currentTimeMillis()), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 6.dp))
-    }
-}
-
-@Composable
-private fun ForecastCard(days: List<DayForecast>, modifier: Modifier, onOpenStats: () -> Unit) {
-    var selected by rememberSaveable { mutableIntStateOf(0) }
-    val zone = ZoneId.systemDefault()
-    val dayFormat = DateTimeFormatter.ofPattern("EEE").withLocale(Locale.getDefault()).withZone(zone)
-    val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault()).withZone(zone)
-    Surface(modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-        Column(Modifier.padding(vertical = 16.dp)) {
-            Text(
-                "Review forecast", style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.clickable(onClick = onOpenStats).padding(horizontal = 16.dp).padding(bottom = 8.dp),
-            )
-            if (days.isEmpty()) return@Column
-            ScrollableTabRow(selectedTabIndex = selected.coerceIn(0, days.lastIndex), containerColor = Color.Transparent, edgePadding = 8.dp) {
-                days.forEachIndexed { i, day ->
-                    Tab(
-                        selected = selected == i, onClick = { selected = i },
-                        text = { Text(if (i == 0) "Today" else dayFormat.format(Instant.ofEpochMilli(day.dayStartMillis)), maxLines = 1, fontSize = 13.sp) },
-                    )
-                }
-            }
-            val day = days[selected.coerceIn(0, days.lastIndex)]
-            val most = (day.rows.maxOfOrNull { it.count } ?: 1).coerceAtLeast(1)
-            Column(Modifier.padding(horizontal = 16.dp).padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (day.rows.isEmpty()) {
-                    Text("No new reviews arrive this day.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                for (row in day.rows) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(timeFormat.format(Instant.ofEpochMilli(row.startMillis)), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(72.dp))
-                        Box(Modifier.weight(1f).height(14.dp)) {
-                            Box(
-                                Modifier.fillMaxHeight().fillMaxWidth(row.count.toFloat() / most).clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.primary),
-                            )
-                        }
-                        Text("+${row.count}", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End, modifier = Modifier.width(44.dp))
-                        Text(row.cumulative.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.width(44.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StageTiles(breakdown: List<BreakdownRow>, modifier: Modifier, onOpen: (StageGroup) -> Unit) {
-    val stages = LocalStageColors.current
-    fun total(group: StageGroup) = breakdown.firstOrNull { it.group == group }?.total ?: 0
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StageTile("Apprentice", total(StageGroup.APPRENTICE), stages.apprentice, Modifier.weight(1f)) { onOpen(StageGroup.APPRENTICE) }
-            StageTile("Guru", total(StageGroup.GURU), stages.guru, Modifier.weight(1f)) { onOpen(StageGroup.GURU) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StageTile("Master", total(StageGroup.MASTER), stages.master, Modifier.weight(1f)) { onOpen(StageGroup.MASTER) }
-            StageTile("Enlightened", total(StageGroup.ENLIGHTENED), stages.enlightened, Modifier.weight(1f)) { onOpen(StageGroup.ENLIGHTENED) }
-        }
-        StageTile("Burned", total(StageGroup.BURNED), stages.burned, Modifier.fillMaxWidth()) { onOpen(StageGroup.BURNED) }
-    }
-}
-
-@Composable
-private fun StageTile(label: String, count: Int, color: Color, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.clip(RoundedCornerShape(12.dp)).background(color).clickable(onClick = onClick).padding(vertical = 14.dp)
-            .semantics { contentDescription = "$label: $count. Show these items" },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val fg = contentColorOn(color)
-        Text(count.toString(), color = fg, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(label, color = fg, style = MaterialTheme.typography.labelMedium)
     }
 }

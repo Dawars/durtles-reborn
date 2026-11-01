@@ -1,44 +1,42 @@
+// Based on Tsurukame (ios/SettingsViewController.swift, ReviewSettingsViewController.swift),
+// Copyright David Sansome, Apache License 2.0: see assets/TSURUKAME-LICENSE.txt.
+// Rewritten in Kotlin and changed for this app.
 package com.example.durtlesreborn.ui
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.border
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Box
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.unit.sp
+import com.example.durtlesreborn.BuildConfig
 import com.example.durtlesreborn.answer.CloseEnoughAction
 import com.example.durtlesreborn.notify.WidgetUpdater
 import com.example.durtlesreborn.settings.AppSettings
@@ -74,6 +72,38 @@ private val priorities = listOf(
 /** "LEVEL_THEN_TYPE" becomes "Level, then type". */
 private fun pretty(name: String) = name.lowercase().replace("_then_", ", then ").replace('_', ' ').replaceFirstChar { it.uppercase() }
 
+/** Tsurukame's review orders, as the combination of settings each one means here. */
+internal val tsurukameReviewOrders: List<Pair<String, (AppSettings) -> AppSettings>> = listOf(
+    "Random" to reviewOrder("SHUFFLE"),
+    "Ascending SRS stage" to reviewOrder("SRS"),
+    "Descending SRS stage" to reviewOrder("SRS", reversed = true),
+    "Lowest level first" to reviewOrder("LEVEL_THEN_TYPE"),
+    "Newest available first" to reviewOrder("DUE", reversed = true),
+    "Oldest available first" to reviewOrder("DUE"),
+    "Longest relative wait" to reviewOrder("SHUFFLE", overdueFirst = true),
+)
+
+private fun reviewOrder(order: String, reversed: Boolean = false, overdueFirst: Boolean = false): (AppSettings) -> AppSettings = {
+    it.copy(reviewOrder = order, reviewOrderReversed = reversed, reviewOrderOverdueFirst = overdueFirst, reviewOrderPriority = "NONE")
+}
+
+/** The name of the order [s] is set to, or null if the advanced settings make it something else. */
+internal fun tsurukameReviewOrderName(s: AppSettings): String? =
+    tsurukameReviewOrders.firstOrNull { (_, apply) -> apply(s) == s }?.first
+
+private enum class SettingsPage(val title: String) {
+    ROOT("Settings"),
+    APPEARANCE("Appearance & Notifications"),
+    LESSONS("Lessons"),
+    REVIEWS("Reviews"),
+}
+
+/** A list of options with a checkmark on the current one, opened from a row. */
+private class ChoicePage(val title: String, val current: String, val options: List<Pair<String, String>>, val onPick: (String) -> Unit)
+
+/**
+ * Settings as grouped tables with pushed sub-pages.
+ */
 @Composable
 fun SettingsScreen(
     state: UiState.Settings,
@@ -87,124 +117,252 @@ fun SettingsScreen(
     audioDownload: AudioDownload,
     onOpenAudio: () -> Unit,
 ) {
+    val tk = LocalTk.current
+    var page by rememberSaveable { mutableStateOf(SettingsPage.ROOT) }
+    var choice by remember { mutableStateOf<ChoicePage?>(null) }
+    val goBack = {
+        when {
+            choice != null -> choice = null
+            page != SettingsPage.ROOT -> page = SettingsPage.ROOT
+            else -> onBack()
+        }
+    }
+    BackHandler(enabled = choice != null || page != SettingsPage.ROOT) { goBack() }
     val s = state.settings
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Back") }
-            Text("Settings", style = MaterialTheme.typography.titleLarge)
+    val openChoice = { title: String, current: String, options: List<Pair<String, String>>, onPick: (String) -> Unit ->
+        choice = ChoicePage(title, current, options, onPick)
+    }
+    Column(Modifier.fillMaxSize().background(tk.grouped)) {
+        val open = choice
+        TkNavBar(
+            open?.title ?: page.title,
+            onBack = goBack,
+            backLabel = if (open != null) page.title else if (page != SettingsPage.ROOT) "Settings" else "Back",
+        )
+        key(page, open) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
+                when {
+                    open != null -> ChoiceList(open) { choice = null }
+                    page == SettingsPage.ROOT -> RootPage(s, state.message, onChange, onExport, onImport, onMessage, onSync, onSignOut, audioDownload, onOpenAudio) { page = it }
+                    page == SettingsPage.APPEARANCE -> AppearancePage(s, onChange, openChoice)
+                    page == SettingsPage.LESSONS -> LessonsPage(s, onChange, openChoice)
+                    else -> ReviewsPage(s, onChange, openChoice)
+                }
+            }
         }
+    }
+}
 
-        Section("Account")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onSync) { Text("Sync now") }
-            OutlinedButton(onClick = onSignOut) { Text("Sign out") }
-        }
-        AudioDownloadRow(audioDownload, onOpenAudio)
-
-        Section("Display")
-        ChoiceRow(
-            "Colour theme",
-            AppTheme.fromName(s.theme, AppTheme.DYNAMIC).label,
-            AppTheme.entries.map { it.name to it.label },
-            swatch = { name -> fixedScheme(AppTheme.fromName(name, AppTheme.DYNAMIC))?.let { it.background to it.primary } },
-        ) { name -> onChange { it.copy(theme = name) } }
-        SwitchRow(
-            "Show stage names under items",
-            "A1–A4, G1–G2, Master, Enlightened and Burned instead of the five-segment bars; the stage legend is hidden.",
-            s.textStageLabels,
-        ) { onChange { it.copy(textStageLabels = !it.textStageLabels) } }
-
-        Section("Notifications")
-        SwitchRow("Notify about new reviews", "Shows how many reviews and lessons are waiting. Needs the notification permission.", s.enableNotifications) {
-            onChange { it.copy(enableNotifications = !it.enableNotifications) }
-        }
-        ChoiceRow("Update frequency", pretty(s.notificationFrequency), notificationFrequencies.map { it to pretty(it) }) { name ->
-            onChange { it.copy(notificationFrequency = name) }
-        }
-        ChoiceRow("Priority", pretty(s.notificationPriority), notificationPriorities.map { it to pretty(it) }) { name ->
-            onChange { it.copy(notificationPriority = name) }
-        }
-        ChoiceRow("Category", pretty(s.notificationCategory), notificationCategories.map { it to pretty(it) }) { name ->
-            onChange { it.copy(notificationCategory = name) }
-        }
-
-        val context = LocalContext.current
-        OutlinedButton(onClick = { WidgetUpdater.requestPin(context) }, modifier = Modifier.padding(top = 8.dp)) {
-            Text("Add widget to home screen")
-        }
-
-        Section("Syncing")
-        SwitchRow("Allow background sync", "Send reviews and fetch changes every hour when online.", s.enableBackgroundSync) {
+@Composable
+private fun RootPage(
+    s: AppSettings,
+    message: String?,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    onExport: suspend () -> String,
+    onImport: (String) -> Unit,
+    onMessage: (String) -> Unit,
+    onSync: () -> Unit,
+    onSignOut: () -> Unit,
+    audioDownload: AudioDownload,
+    onOpenAudio: () -> Unit,
+    onOpenPage: (SettingsPage) -> Unit,
+) {
+    TkSection("Settings") {
+        TkRow(SettingsPage.APPEARANCE.title, chevron = true, onClick = { onOpenPage(SettingsPage.APPEARANCE) })
+        TkRow(SettingsPage.LESSONS.title, chevron = true, onClick = { onOpenPage(SettingsPage.LESSONS) })
+        TkRow(SettingsPage.REVIEWS.title, chevron = true, onClick = { onOpenPage(SettingsPage.REVIEWS) })
+    }
+    TkSection(
+        "Audio",
+        footer = "Each level downloads by itself once you reach it, so pronunciations also play offline.",
+    ) {
+        TkRow("Offline audio", subtitle = audioSummary(audioDownload), chevron = true, onClick = onOpenAudio)
+    }
+    TkSection("Syncing") {
+        TkSwitchRow("Allow background sync", "Send reviews and fetch changes every hour when online.", s.enableBackgroundSync) {
             onChange { it.copy(enableBackgroundSync = !it.enableBackgroundSync) }
         }
-        SwitchRow("Sync when the app is opened", null, s.syncOnOpen) { onChange { it.copy(syncOnOpen = !it.syncOnOpen) } }
+        TkSwitchRow("Sync when the app is opened", checked = s.syncOnOpen) { onChange { it.copy(syncOnOpen = !it.syncOnOpen) } }
+        TkRow("Sync now", titleColor = TkFixed.tint, onClick = onSync)
+    }
+    BackupSection(message, onExport, onImport, onMessage)
+    TkSection(
+        "Developer",
+        footer = "Sessions run as normal, but nothing is saved on this phone or sent to WaniKani. Results already waiting to be sent are still sent.",
+    ) {
+        TkSwitchRow("Dry run (practice mode)", checked = s.dryRun) { onChange { it.copy(dryRun = !it.dryRun) } }
+    }
+    TkSection("Diagnostics") {
+        TkRow("Version", value = BuildConfig.VERSION_NAME)
+    }
+    TkSection("Credits", footer = "Tsurukame's Apache 2.0 licence comes with this app. Tsurukame is not affiliated with this app.") {
+        TkRow("Design and artwork", subtitle = "Based on Tsurukame by David Sansome and contributors")
+    }
+    var confirmLogOut by remember { mutableStateOf(false) }
+    TkSection {
+        TkRow("Log out", titleColor = TkFixed.red, onClick = { confirmLogOut = true })
+    }
+    if (confirmLogOut) {
+        TkActionSheet(
+            title = "Log out?",
+            message = "This removes your API token from this phone.",
+            action = "Log out",
+            onAction = {
+                confirmLogOut = false
+                onSignOut()
+            },
+            onDismiss = { confirmLogOut = false },
+        )
+    }
+}
 
-        Section("Reviews")
-        SwitchRow(
-            "Send results when the session ends",
-            "Leave a review or lesson session and carry on later. Results are saved, and sent after you finish or wrap up.",
-            s.delayResultUpload,
-        ) { onChange { it.copy(delayResultUpload = !it.delayResultUpload) } }
+@Composable
+private fun AppearancePage(
+    s: AppSettings,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    openChoice: (String, String, List<Pair<String, String>>, (String) -> Unit) -> Unit,
+) {
+    val context = LocalContext.current
+    TkSection("Appearance") {
+        ChoiceRow("Dark/light mode", s.interfaceStyle, listOf("SYSTEM", "LIGHT", "DARK"), openChoice) { name -> onChange { it.copy(interfaceStyle = name) } }
+    }
+    TkSection("Notifications", footer = "Shows how many reviews and lessons are waiting. Needs the notification permission.") {
+        TkSwitchRow("Notify about new reviews", checked = s.enableNotifications) { onChange { it.copy(enableNotifications = !it.enableNotifications) } }
+        ChoiceRow("Update frequency", s.notificationFrequency, notificationFrequencies, openChoice) { name -> onChange { it.copy(notificationFrequency = name) } }
+        ChoiceRow("Priority", s.notificationPriority, notificationPriorities, openChoice) { name -> onChange { it.copy(notificationPriority = name) } }
+        ChoiceRow("Category", s.notificationCategory, notificationCategories, openChoice) { name -> onChange { it.copy(notificationCategory = name) } }
+    }
+    TkSection {
+        TkRow("Add widget to home screen", titleColor = TkFixed.tint, onClick = { WidgetUpdater.requestPin(context) })
+    }
+}
+
+@Composable
+private fun LessonsPage(
+    s: AppSettings,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    openChoice: (String, String, List<Pair<String, String>>, (String) -> Unit) -> Unit,
+) {
+    TkSection {
+        StepperRow("Lessons per session", s.maxLessonSessionSize, 1, AppSettings.MIN_SESSION_SIZE, AppSettings.MAX_SESSION_SIZE) { value ->
+            onChange { it.copy(maxLessonSessionSize = value) }
+        }
+        ChoiceRow("Order", s.lessonOrder, lessonOrders, openChoice) { name -> onChange { it.copy(lessonOrder = name) } }
+    }
+}
+
+@Composable
+private fun ReviewsPage(
+    s: AppSettings,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    openChoice: (String, String, List<Pair<String, String>>, (String) -> Unit) -> Unit,
+) {
+    TkSection("Reviews", footer = "With results sent at the end, you can leave a session and carry on later, online or offline.") {
+        TkSwitchRow("Send results when the session ends", checked = s.delayResultUpload) { onChange { it.copy(delayResultUpload = !it.delayResultUpload) } }
         StepperRow("Reviews per session", s.maxReviewSessionSize, 10, AppSettings.MIN_SESSION_SIZE, AppSettings.MAX_SESSION_SIZE) { value ->
             onChange { it.copy(maxReviewSessionSize = value) }
         }
-        ChoiceRow("Order", pretty(s.reviewOrder), reviewOrders.map { it to pretty(it) }) { name -> onChange { it.copy(reviewOrder = name) } }
-        SwitchRow("Reverse order", null, s.reviewOrderReversed) { onChange { it.copy(reviewOrderReversed = !it.reviewOrderReversed) } }
-        SwitchRow("Overdue items first", null, s.reviewOrderOverdueFirst) { onChange { it.copy(reviewOrderOverdueFirst = !it.reviewOrderOverdueFirst) } }
-        ChoiceRow("Priority", pretty(s.reviewOrderPriority), priorities.map { it to pretty(it) }) { name -> onChange { it.copy(reviewOrderPriority = name) } }
-        SwitchRow(
-            "Ask meaning and reading back to back",
-            "Both questions for one item before moving on to the next item.",
-            s.reviewBackToBack,
-        ) { onChange { it.copy(reviewBackToBack = !it.reviewBackToBack) } }
+    }
+    TkSection("Order") {
+        val orderName = tsurukameReviewOrderName(s)
+        TkRow(
+            "Order",
+            value = orderName ?: "Custom",
+            chevron = true,
+            onClick = {
+                openChoice("Order", orderName.orEmpty(), tsurukameReviewOrders.map { it.first to it.first }) { name ->
+                    tsurukameReviewOrders.first { it.first == name }.second.let { apply -> onChange(apply) }
+                }
+            },
+        )
+        TkSwitchRow("Back-to-back", "Group meaning and reading together", s.reviewBackToBack) { onChange { it.copy(reviewBackToBack = !it.reviewBackToBack) } }
         // One choice instead of the original's two switches; both falsy means random.
         val questionOrder = when {
             s.reviewMeaningFirst -> "MEANING_FIRST"
             s.reviewReadingFirst -> "READING_FIRST"
             else -> "RANDOM"
         }
-        ChoiceRow(
-            "Question order",
-            pretty(questionOrder),
-            listOf("RANDOM", "MEANING_FIRST", "READING_FIRST").map { it to pretty(it) },
-        ) { name ->
+        ChoiceRow("Question order", questionOrder, listOf("RANDOM", "MEANING_FIRST", "READING_FIRST"), openChoice) { name ->
             onChange { it.copy(reviewMeaningFirst = name == "MEANING_FIRST", reviewReadingFirst = name == "READING_FIRST") }
         }
-
-        Section("Lessons")
-        StepperRow("Lessons per session", s.maxLessonSessionSize, 1, AppSettings.MIN_SESSION_SIZE, AppSettings.MAX_SESSION_SIZE) { value ->
-            onChange { it.copy(maxLessonSessionSize = value) }
+    }
+    TkSection("Advanced order", footer = "These combine freely. Changing them can make the order above show as Custom.") {
+        ChoiceRow("Sort by", s.reviewOrder, reviewOrders, openChoice) { name -> onChange { it.copy(reviewOrder = name) } }
+        TkSwitchRow("Reverse order", checked = s.reviewOrderReversed) { onChange { it.copy(reviewOrderReversed = !it.reviewOrderReversed) } }
+        TkSwitchRow("Overdue items first", checked = s.reviewOrderOverdueFirst) { onChange { it.copy(reviewOrderOverdueFirst = !it.reviewOrderOverdueFirst) } }
+        ChoiceRow("Priority", s.reviewOrderPriority, priorities, openChoice) { name -> onChange { it.copy(reviewOrderPriority = name) } }
+    }
+    TkSection("Answers & marking") {
+        TkSwitchRow("Show answer immediately", "After a wrong answer. Off: tap the eye to reveal it.", s.showAnswerOnWrong) {
+            onChange { it.copy(showAnswerOnWrong = !it.showAnswerOnWrong) }
         }
-        ChoiceRow("Order", pretty(s.lessonOrder), lessonOrders.map { it to pretty(it) }) { name -> onChange { it.copy(lessonOrder = name) } }
-
-        BackupSection(state.message, onExport, onImport, onMessage)
-
-        Section("Developer")
-        SwitchRow(
-            "Dry run (practice mode)",
-            "Sessions run as normal, but nothing is saved on this phone or sent to WaniKani. Switch it off to go back to your real account. Results already waiting to be sent are still sent.",
-            s.dryRun,
-        ) { onChange { it.copy(dryRun = !it.dryRun) } }
-
-        Section("Answers")
-        SwitchRow(
-            "Keep the keyboard open between answers",
-            "Reviews and lessons. On: the field stays focused, so the next answer needs no extra tap. Off: the keyboard collapses after each answer.",
-            s.keepKeyboardOpen,
-        ) { onChange { it.copy(keepKeyboardOpen = !it.keepKeyboardOpen) } }
-        ChoiceRow(
+        TkSwitchRow("Keep the keyboard open between answers", checked = s.keepKeyboardOpen) { onChange { it.copy(keepKeyboardOpen = !it.keepKeyboardOpen) } }
+        TkRow(
             "Answer that is close enough",
-            closeEnoughLabel(s.closeEnoughAction),
-            CloseEnoughAction.entries.map { it.name to closeEnoughLabel(it) },
-        ) { name -> onChange { it.copy(closeEnoughAction = CloseEnoughAction.valueOf(name)) } }
-        SwitchRow("Require on’yomi answers in katakana", null, s.requireOnYomiInKatakana) {
+            value = closeEnoughLabel(s.closeEnoughAction),
+            chevron = true,
+            onClick = {
+                openChoice("Close enough", s.closeEnoughAction.name, CloseEnoughAction.entries.map { it.name to closeEnoughLabel(it) }) { name ->
+                    onChange { it.copy(closeEnoughAction = CloseEnoughAction.valueOf(name)) }
+                }
+            },
+        )
+        TkSwitchRow("Require on\u2019yomi answers in katakana", checked = s.requireOnYomiInKatakana) {
             onChange { it.copy(requireOnYomiInKatakana = !it.requireOnYomiInKatakana) }
         }
-        SwitchRow(
-            "Show the answer after a wrong answer",
-            "Off: the answer stays hidden. Swipe up on the question for the full details.",
-            s.showAnswerOnWrong,
-        ) { onChange { it.copy(showAnswerOnWrong = !it.showAnswerOnWrong) } }
+        TkSwitchRow("Show SRS level indicator", checked = s.showSrsIndicator) { onChange { it.copy(showSrsIndicator = !it.showSrsIndicator) } }
+    }
+}
+
+/** A row that opens a checkmark list of [options]; the stored value is shown in plain words. */
+@Composable
+private fun ChoiceRow(
+    title: String,
+    current: String,
+    options: List<String>,
+    openChoice: (String, String, List<Pair<String, String>>, (String) -> Unit) -> Unit,
+    onPick: (String) -> Unit,
+) {
+    TkRow(title, value = pretty(current), chevron = true, onClick = { openChoice(title, current, options.map { it to pretty(it) }, onPick) })
+}
+
+@Composable
+private fun ChoiceList(page: ChoicePage, onClose: () -> Unit) {
+    TkSection {
+        for ((name, label) in page.options) {
+            TkRow(
+                label,
+                onClick = {
+                    page.onPick(name)
+                    onClose()
+                },
+                trailing = { if (name == page.current) TkText("\u2713", color = TkFixed.tint, modifier = Modifier.padding(start = 8.dp)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun StepperRow(title: String, value: Int, step: Int, min: Int, max: Int, onValue: (Int) -> Unit) {
+    val tk = LocalTk.current
+    TkRow(
+        title,
+        value = "$value",
+        trailing = {
+            Spacer(Modifier.width(10.dp))
+            Row(Modifier.clip(RoundedCornerShape(8.dp)).background(if (tk.isDark) Color(0xFF2C2C2E) else Color(0xFFE3E3E8)), verticalAlignment = Alignment.CenterVertically) {
+                StepperButton("\u2212", value > min) { onValue((value - step).coerceAtLeast(min)) }
+                Box(Modifier.size(width = 1.dp, height = 18.dp).background(tk.separator))
+                StepperButton("+", value < max) { onValue((value + step).coerceAtMost(max)) }
+            }
+        },
+    )
+}
+
+@Composable
+private fun StepperButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(Modifier.size(width = 46.dp, height = 32.dp).clickable(enabled = enabled, onClick = onClick), Alignment.Center) {
+        TkText(label, size = 20.sp, color = LocalTk.current.label.copy(alpha = if (enabled) 1f else 0.3f))
     }
 }
 
@@ -216,110 +374,18 @@ private fun closeEnoughLabel(action: CloseEnoughAction) = when (action) {
     CloseEnoughAction.REJECT -> "Count as wrong"
 }
 
-/**
- * Summary of the automatic pronunciation download, under Account. The Manage button opens the
- * per-level screen where space can be inspected and freed.
- */
-@Composable
-private fun AudioDownloadRow(state: AudioDownload, onOpen: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Pronunciation audio", style = MaterialTheme.typography.bodyLarge)
-        Text(
-            when {
-                state.running && state.total > 0 -> "Downloading level ${state.level}: ${state.done} of ${state.total} clips${failedSuffix(state.failed)}"
-                state.running -> "Preparing level ${state.level}…"
-                state.storedCount == 0 -> "No clips on this phone yet."
-                else -> "${state.storedCount} clips on this phone (${formatSize(state.storedBytes)})."
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) { Text("Manage audio downloads") }
-        Text(
-            "Each level downloads by itself once you reach it. Open this to see or delete the space each level uses.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun audioSummary(state: AudioDownload) = when {
+    state.running && state.total > 0 -> "Downloading level ${state.level}: ${state.done} of ${state.total} clips${if (state.failed > 0) ", ${state.failed} failed" else ""}"
+    state.running -> "Preparing level ${state.level}\u2026"
+    state.storedCount == 0 -> "No clips on this phone yet."
+    else -> "${state.storedCount} clips on this phone (${formatSize(state.storedBytes)})."
 }
-
-private fun failedSuffix(failed: Int) = if (failed > 0) ", $failed failed" else ""
 
 internal fun formatSize(bytes: Long): String = when {
     bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1_000_000_000.0)
     bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
     bytes >= 1_000 -> "%.0f kB".format(bytes / 1_000.0)
     else -> "$bytes B"
-}
-
-@Composable
-private fun Section(title: String) {
-    HorizontalDivider(Modifier.padding(top = 16.dp))
-    Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
-}
-
-@Composable
-private fun SwitchRow(title: String, summary: String?, checked: Boolean, onToggle: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().toggleable(value = checked, role = Role.Switch, onValueChange = { onToggle() }).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-        Switch(checked = checked, onCheckedChange = null)
-    }
-}
-
-@Composable
-private fun StepperRow(title: String, value: Int, step: Int, min: Int, max: Int, onValue: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { onValue((value - step).coerceAtLeast(min)) }, enabled = value > min) { Text("−") }
-        Text("$value", modifier = Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = { onValue((value + step).coerceAtMost(max)) }, enabled = value < max) { Text("+") }
-    }
-}
-
-@Composable
-private fun ChoiceRow(
-    title: String,
-    current: String,
-    options: List<Pair<String, String>>,
-    /** Optional two colours to draw beside an option, so themes can be seen before they are picked. */
-    swatch: ((String) -> Pair<Color, Color>?)? = null,
-    onPick: (String) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().clickable { open = true }.padding(vertical = 8.dp).semantics { }) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Text(current, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            for ((name, label) in options) {
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    leadingIcon = swatch?.let { colours ->
-                        { Swatch(colours(name)) }
-                    },
-                    onClick = { open = false; onPick(name) },
-                )
-            }
-        }
-    }
-}
-
-/** A round chip showing a theme's background with its accent colour as a dot; a plain ring for wallpaper colours. */
-@Composable
-private fun Swatch(colours: Pair<Color, Color>?) {
-    val ring = MaterialTheme.colorScheme.outline
-    Box(
-        Modifier.size(28.dp).clip(CircleShape).background(colours?.first ?: Color.Transparent).border(1.dp, ring, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(Modifier.size(12.dp).clip(CircleShape).background(colours?.second ?: ring))
-    }
 }
 
 /** Largest backup file accepted; real backups are a few kilobytes. */
@@ -359,15 +425,11 @@ private fun BackupSection(message: String?, onExport: suspend () -> String, onIm
         }
     }
 
-    Section("Backup")
-    Text(
-        "Save your settings to a file, or restore them from one. Backups from the original app work too. Your API token is never saved or restored.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { save.launch("durtles_reborn_settings_${LocalDate.now()}.json") }) { Text("Back up settings") }
-        OutlinedButton(onClick = { open.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Restore") }
+    TkSection(
+        "Backup",
+        footer = message ?: "Save your settings to a file, or restore them from one. Your API token is never saved or restored.",
+    ) {
+        TkRow("Back up settings", titleColor = TkFixed.tint, onClick = { save.launch("durtles_reborn_settings_${LocalDate.now()}.json") })
+        TkRow("Restore settings", titleColor = TkFixed.tint, onClick = { open.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) })
     }
-    message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
 }

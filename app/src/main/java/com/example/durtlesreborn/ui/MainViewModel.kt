@@ -14,6 +14,7 @@ import com.example.durtlesreborn.data.StageGroup
 import com.example.durtlesreborn.session.SubjectKind
 import com.example.durtlesreborn.data.SearchResult
 import com.example.durtlesreborn.data.Stats
+import com.example.durtlesreborn.data.subjectKindOf
 import com.example.durtlesreborn.data.SessionRecorder
 import com.example.durtlesreborn.data.SyncStep
 import com.example.durtlesreborn.kana.Kana
@@ -52,6 +53,24 @@ import kotlinx.coroutines.launch
 /** What the home screen shows about a session that can be resumed. */
 data class SavedSession(val type: SessionType, val doneItems: Int, val totalItems: Int)
 
+/** What the review screen celebrates after a correct answer. [id] is new for every answer. */
+data class QuizSuccess(val id: Long, val itemFinished: Boolean, val move: StageMove?, val note: String?)
+
+/** One card in the page control at the bottom of a lesson. */
+data class LessonChip(val id: Long, val title: String, val kind: SubjectKind?)
+
+/** An item missed during a session, for the summary. */
+data class SummaryItem(
+    val id: Long,
+    val title: String,
+    val kind: SubjectKind?,
+    val level: Int,
+    val reading: String?,
+    val meaning: String?,
+    val readingWrong: Boolean,
+    val meaningWrong: Boolean,
+)
+
 private fun SessionType.label() = when (this) {
     SessionType.REVIEW -> "reviews"
     SessionType.LESSON -> "lessons"
@@ -82,6 +101,8 @@ sealed interface UiState {
         val selectedLevel: Int,
         val maxLevel: Int,
         val contents: Map<Int, LevelContent> = emptyMap(),
+        /** Only the items not yet at Guru, from "Show remaining". */
+        val remainingOnly: Boolean = false,
     ) : UiState
 
     data class Quiz(
@@ -96,8 +117,12 @@ sealed interface UiState {
         val showAnswerOnWrong: Boolean = false,
         /** Keep the field focused and the keyboard up while the answer is shown, from `keep_keyboard_open`. */
         val keepKeyboardOpen: Boolean = true,
-        /** Set when this answer completed a review item: the stage it moved from and to. */
-        val stageMove: StageMove? = null,
+        /** Ask the keyboard for Japanese or English to suit the question, from `auto_switch_keyboard`. */
+        val showSrsIndicator: Boolean = true,
+        /** Set on the first question after a correct answer. */
+        val success: QuizSuccess? = null,
+        /** Share of the questions in this session answered correctly, in percent. */
+        val successRate: Int = 100,
     ) : UiState
 
     data class Lesson(
@@ -106,9 +131,17 @@ sealed interface UiState {
         val total: Int,
         val isFirst: Boolean,
         val isLast: Boolean,
+        val chips: List<LessonChip> = emptyList(),
     ) : UiState
 
-    data class Summary(val totalItems: Int, val perfectItems: Int, val type: SessionType = SessionType.REVIEW, val dryRun: Boolean = false) : UiState
+    data class Summary(
+        val totalItems: Int,
+        val perfectItems: Int,
+        val type: SessionType = SessionType.REVIEW,
+        val dryRun: Boolean = false,
+        val mistakes: List<SummaryItem> = emptyList(),
+        val currentLevel: Int? = null,
+    ) : UiState
 
     data class Settings(val settings: AppSettings, val message: String? = null) : UiState
 
@@ -158,6 +191,11 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private var sessionDryRun = false
     private var sessionShowAnswerOnWrong = false
     private var sessionKeepKeyboardOpen = true
+    private var sessionShowSrsIndicator = true
+    private var answeredQuestions = 0
+    private var correctQuestions = 0
+    private var lastSuccessId = 0L
+    private var lessonChips: List<LessonChip>? = null
     private var audioJob: Job? = null
 
     private val _audioDownload = MutableStateFlow(AudioDownload())
@@ -380,11 +418,11 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     /** Opens the level browser at [level], or the user's level. */
-    fun openLevels(level: Int?) {
+    fun openLevels(level: Int?, remainingOnly: Boolean = false) {
         viewModelScope.launch {
             val max = container.dashboardRepository.maxLevel()
             val start = (level ?: container.repository.userLevel()).coerceIn(1, max)
-            _state.value = UiState.Levels(start, max)
+            _state.value = UiState.Levels(start, max, remainingOnly = remainingOnly)
             ensureLevel(start)
         }
     }
@@ -725,6 +763,10 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         sessionDryRun = settings.dryRun
         sessionShowAnswerOnWrong = settings.showAnswerOnWrong
         sessionKeepKeyboardOpen = settings.keepKeyboardOpen
+        sessionShowSrsIndicator = settings.showSrsIndicator
+        answeredQuestions = 0
+        correctQuestions = 0
+        lessonChips = null
         persist()
         if (quiz?.inPresentation == true) showLessonCard() else showNextCard()
     }
@@ -735,7 +777,13 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val (index, total) = controller.presentationPosition
         viewModelScope.launch {
             val info = container.repository.lessonInfoFor(id) ?: return@launch
-            _state.value = UiState.Lesson(info, index, total, controller.isOnFirstLessonItem, controller.isOnLastLessonItem)
+            val chips = lessonChips ?: controller.lessonItemIds.let { ids ->
+                val stored = container.repository.subjectsById(ids)
+                ids.mapNotNull { chipId ->
+                    stored[chipId]?.let { LessonChip(chipId, it.characters ?: it.slug ?: "?", subjectKindOf(it.type)) }
+                }
+            }.also { lessonChips = it }
+            _state.value = UiState.Lesson(info, index, total, controller.isOnFirstLessonItem, controller.isOnLastLessonItem, chips)
         }
     }
 
@@ -758,7 +806,22 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         showLessonCard()
     }
 
-    private fun showNextCard() {
+    /** Jumps to a lesson card; one past the last card starts the quiz. */
+    fun onLessonGoTo(index: Int) {
+        val controller = quiz ?: return
+        if (!controller.inPresentation) return
+        if (index >= controller.presentationPosition.second) {
+            controller.startQuiz()
+            showNextCard()
+            return
+        }
+        while (controller.presentationPosition.first < index) controller.nextLessonItem()
+        while (controller.presentationPosition.first > index) controller.previousLessonItem()
+        persist()
+        showLessonCard()
+    }
+
+    private fun showNextCard(success: QuizSuccess? = null) {
         val controller = quiz ?: return
         val card = controller.card()
         if (card == null) {
@@ -772,7 +835,20 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             canUndo = controller.canUndo,
             showAnswerOnWrong = sessionShowAnswerOnWrong,
             keepKeyboardOpen = sessionKeepKeyboardOpen,
+            showSrsIndicator = sessionShowSrsIndicator,
+            success = success,
+            successRate = successRate(),
         )
+    }
+
+    private fun successRate() = if (answeredQuestions == 0) 100 else correctQuestions * 100 / answeredQuestions
+
+    /** Tsurukame goes straight to the next question after a correct answer. */
+    private fun advanceAfterCorrect(current: UiState.Quiz, controller: QuizController, note: String?) {
+        val finished = controller.progress.answeredItems > current.progress.answeredItems
+        val success = QuizSuccess(++lastSuccessId, finished, stageMoveAfterAnswer(controller), note)
+        controller.next()
+        showNextCard(success)
     }
 
     fun onInputChange(text: String) {
@@ -795,12 +871,22 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         // A trailing lone "n" is a pending ん; the engine converts it for kana questions.
         val feedback = controller.submit(current.input)
         persist()
+        if (!feedback.retry) {
+            answeredQuestions++
+            if (feedback.correct) correctQuestions++
+        }
+        if (feedback.correct && controller.answered) {
+            val note = feedback.verdict.takeIf { it.nearMatch }?.let { "Close enough to \u201c${it.matchedAnswer}\u201d" }
+            advanceAfterCorrect(current, controller, note)
+            return
+        }
         _state.value = current.copy(
             feedback = feedback,
             answered = controller.answered,
             progress = controller.progress,
             canUndo = controller.canUndo,
-            stageMove = stageMoveAfterAnswer(controller),
+            successRate = successRate(),
+            success = null,
         )
     }
 
@@ -810,12 +896,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val controller = quiz ?: return
         val feedback = controller.dontKnow()
         persist()
+        answeredQuestions++
         _state.value = current.copy(
             feedback = feedback,
             answered = true,
             progress = controller.progress,
             canUndo = controller.canUndo,
-            stageMove = stageMoveAfterAnswer(controller),
+            successRate = successRate(),
+            success = null,
         )
     }
 
@@ -829,6 +917,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     fun onUndo() {
         val controller = quiz ?: return
         if (!controller.canUndo) return
+        if ((_state.value as? UiState.Quiz)?.feedback?.correct == false) answeredQuestions = (answeredQuestions - 1).coerceAtLeast(0)
         controller.undo()
         showNextCard()
     }
@@ -839,13 +928,9 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val controller = quiz ?: return
         if (!current.answered || current.feedback?.correct == true) return
         controller.ignoreMistake()
+        correctQuestions++
         persist()
-        _state.value = current.copy(
-            feedback = QuizFeedback(current.feedback!!.verdict, retry = false, correct = true),
-            progress = controller.progress,
-            canUndo = controller.canUndo,
-            stageMove = stageMoveAfterAnswer(controller),
-        )
+        advanceAfterCorrect(current, controller, null)
     }
 
     /** The bubble is only shown for real reviews, and only when this answer completed the item. */
@@ -865,6 +950,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val sessionRecorder = recorder
         controller.finish()
         val summary = controller.summary()
+        val mistakes = controller.mistakes()
         val finishedType = sessionType
         val finishedDryRun = sessionDryRun
         quiz = null
@@ -873,6 +959,19 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             sessionRecorder?.finish()
             if (finishedType != SessionType.SELF_STUDY && !finishedDryRun) clearSaved()
+            val items = mistakes.mapNotNull { (id, meaningWrong, readingWrong) ->
+                container.repository.lessonInfoFor(id)?.let { info ->
+                    SummaryItem(
+                        id, info.title, info.kind, info.level,
+                        reading = info.readings.filter { it.accepted }.joinToString(", ") { it.text }.ifEmpty { null },
+                        meaning = info.meanings.joinToString(", ").ifEmpty { null },
+                        readingWrong = readingWrong,
+                        meaningWrong = meaningWrong,
+                    )
+                }
+            }
+            val level = container.repository.userLevel()
+            _state.update { if (it is UiState.Summary) it.copy(mistakes = items, currentLevel = level) else it }
         }
     }
 

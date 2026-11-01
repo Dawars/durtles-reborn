@@ -24,7 +24,7 @@ class SettingsStoreTest {
         assertFalse(s.syncOnOpen)
         assertFalse(s.dryRun)
         assertFalse(s.requireOnYomiInKatakana)
-        assertFalse(s.showAnswerOnWrong)
+        assertTrue(s.showAnswerOnWrong)
         assertFalse(s.textStageLabels)
         assertFalse(s.reviewBackToBack)
         assertFalse(s.reviewReadingFirst)
@@ -37,11 +37,11 @@ class SettingsStoreTest {
     @Test
     fun changesArePersisted() = runBlocking {
         val store = SettingsStore(dataStore())
-        store.update { it.copy(closeEnoughAction = CloseEnoughAction.REJECT, maxReviewSessionSize = 25, reviewOrder = "LEVEL_THEN_TYPE", reviewOrderPriority = "RADICALS_FIRST", showAnswerOnWrong = true, textStageLabels = true, reviewBackToBack = true, reviewMeaningFirst = true) }
+        store.update { it.copy(closeEnoughAction = CloseEnoughAction.REJECT, maxReviewSessionSize = 25, reviewOrder = "LEVEL_THEN_TYPE", reviewOrderPriority = "RADICALS_FIRST", showAnswerOnWrong = false, textStageLabels = true, reviewBackToBack = true, reviewMeaningFirst = true) }
         val s = store.current()
         assertEquals(CloseEnoughAction.REJECT, s.closeEnoughAction)
         assertEquals(25, s.maxReviewSessionSize)
-        assertTrue(s.showAnswerOnWrong)
+        assertFalse(s.showAnswerOnWrong)
         assertTrue(s.textStageLabels)
         assertTrue(s.reviewBackToBack)
         assertTrue(s.reviewMeaningFirst)

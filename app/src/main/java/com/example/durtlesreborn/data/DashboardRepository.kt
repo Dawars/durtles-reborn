@@ -113,6 +113,7 @@ data class Dashboard(
     val breakdown: List<BreakdownRow>,
     /** One entry per month, oldest first, each with one entry per day of that month. */
     val activity: List<HeatMonth> = emptyList(),
+    val vocabulary: List<LevelTile> = emptyList(),
 )
 
 internal fun lessonPositionOf(json: String): Int =
@@ -208,6 +209,7 @@ class DashboardRepository(
                 days = forecastDays(times, now, zone, alert.numReviews),
                 breakdown = StatsMath.breakdown(stageCounts),
                 activity = activityMonths(progressTimes, today, zone),
+                vocabulary = content.vocabulary,
             )
         }
     }

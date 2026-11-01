@@ -66,9 +66,26 @@ app/src/main/assets/   stroke order (KanjiVG) and pitch accents (Kanjium)
 docs/                  parity checklists and release notes
 ```
 
-## Third-party data
+## Credits
 
-Two data files are bundled and are the only third-party content in the app:
+### Design: Tsurukame
+
+The screens are modelled on [Tsurukame](https://github.com/davidsansome/tsurukame), the iOS WaniKani app by David Sansome and contributors, as its design stood at commit [50ac074](https://github.com/davidsansome/tsurukame/tree/50ac07485e9ba0d0d71f02d92c5557aae6bd62ef), before its visual refresh. Tsurukame is licensed under Apache 2.0, and a copy of the licence ships in `app/src/main/assets/TSURUKAME-LICENSE.txt`. This app is not affiliated with or endorsed by Tsurukame or its authors.
+
+| In this app | From Tsurukame | Changes |
+| --- | --- | --- |
+| Colours and gradients, `ui/TkStyle.kt` | `ios/Style.swift` | Rewritten in Kotlin |
+| Screen layouts and behaviour; files with a "Based on Tsurukame" notice name their sources | `ios/` view controllers and table items | Rewritten in Kotlin and Compose, changed for Android |
+| Background, `res/drawable-nodpi/tk_launch_screen.jpg` | `launch_screen.imageset/launchscreen.jpg` | Resized and recompressed |
+| Avatar, `res/drawable-nodpi/tk_avatar.png` | App icon, `iTunesArtwork@3x.png` | Resized |
+| `res/drawable-xxxhdpi/tk_srs_*`, `tk_thumb`, `tk_tick`, `tk_inbox`, `tk_add`, `tk_back` | Files of the same names in `ios/Resources/Assets.xcassets` | Unchanged |
+| `res/drawable-xxxhdpi/tk_menu`, `tk_cancel`, `tk_time`, `tk_volume`, `tk_search`, `tk_settings`, `tk_forward` | `baseline_*` and `ic_*` files in `ios/Resources/Assets.xcassets`, named like Google's [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0) | Unchanged |
+
+Tsurukame's repository does not name the artist of its turtle images. If you know who made them, please open an issue so they can be credited here.
+
+### Data
+
+Two data files are bundled:
 
 | File | Source | Licence |
 | --- | --- | --- |

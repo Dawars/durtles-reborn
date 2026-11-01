@@ -1,20 +1,12 @@
 package com.example.durtlesreborn.ui
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalContext
 
 /**
  * The colour themes the user can pick from, in the order the settings list them. The names are
@@ -217,32 +209,6 @@ internal fun subjectPalette(darkSurface: Boolean) = if (darkSurface) darkSubject
 
 /** Whether this theme, in this system mode, has a dark surface. Only DYNAMIC depends on the mode. */
 fun isDarkSurface(theme: AppTheme, systemDark: Boolean) = theme.isDark ?: systemDark
-
-@Composable
-fun DurtlesTheme(
-    theme: AppTheme = AppTheme.DYNAMIC,
-    content: @Composable () -> Unit,
-) {
-    val systemDark = isSystemInDarkTheme()
-    val dark = isDarkSurface(theme, systemDark)
-    val palette = paletteFor(theme, dark)
-    val colors = fixedScheme(theme)
-        ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val context = LocalContext.current
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        } else if (dark) {
-            DarkScheme
-        } else {
-            LightScheme
-        }
-    CompositionLocalProvider(
-        LocalSubjectColors provides palette.subjects,
-        LocalStageColors provides palette.stages,
-        LocalActionColors provides palette.actions,
-    ) {
-        MaterialTheme(colorScheme = colors, content = content)
-    }
-}
 
 /**
  * Colours for the SRS stage groups. A warm-to-cool ramp of this app's own, deliberately not

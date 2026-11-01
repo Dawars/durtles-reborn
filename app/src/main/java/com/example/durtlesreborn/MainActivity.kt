@@ -20,11 +20,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.durtlesreborn.settings.AppSettings
 import com.example.durtlesreborn.ui.AppRoot
-import com.example.durtlesreborn.ui.AppTheme
-import com.example.durtlesreborn.ui.DurtlesTheme
 import com.example.durtlesreborn.ui.LocalStrokeRepository
 import com.example.durtlesreborn.ui.MainViewModel
-import com.example.durtlesreborn.ui.isDarkSurface
+import com.example.durtlesreborn.ui.TsurukameTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -40,19 +38,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            // The screens set the status bar's icon colour themselves, to suit what is under it.
             val settings by (application as DurtlesApp).container.settingsStore.settings.collectAsState(initial = AppSettings())
-            val theme = AppTheme.fromName(settings.theme, AppTheme.DYNAMIC)
-
-            // System bar icons must suit the theme in use, which can differ from the system's own mode.
-            val systemDark = isSystemInDarkTheme()
-            val dark = isDarkSurface(theme, systemDark)
+            val dark = when (settings.interfaceStyle) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> isSystemInDarkTheme()
+            }
             DisposableEffect(dark) {
                 val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
 
-            DurtlesTheme(theme) {
+            TsurukameTheme(dark) {
                 CompositionLocalProvider(LocalStrokeRepository provides (application as DurtlesApp).container.strokeRepository) {
                     AppRoot(viewModel)
                 }
