@@ -118,6 +118,7 @@ sealed interface UiState {
         /** Keep the field focused and the keyboard up while the answer is shown, from `keep_keyboard_open`. */
         val keepKeyboardOpen: Boolean = true,
         /** Ask the keyboard for Japanese or English to suit the question, from `auto_switch_keyboard`. */
+        val switchKeyboard: Boolean = true,
         val showSrsIndicator: Boolean = true,
         /** Set on the first question after a correct answer. */
         val success: QuizSuccess? = null,
@@ -191,6 +192,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private var sessionDryRun = false
     private var sessionShowAnswerOnWrong = false
     private var sessionKeepKeyboardOpen = true
+    private var sessionSwitchKeyboard = true
     private var sessionShowSrsIndicator = true
     private var answeredQuestions = 0
     private var correctQuestions = 0
@@ -257,6 +259,10 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 if (container.settingsStore.current().syncOnOpen || firstRun) sync()
             }
         }
+    }
+
+    init {
+        viewModelScope.launch { container.pitchRepository.preload() }
     }
 
     private var searchState = UiState.Search()
@@ -754,15 +760,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     private suspend fun attach(engine: SessionEngine, sessionRecorder: SessionRecorder, type: SessionType, settings: AppSettings) {
-        val answers = engine.items.mapNotNull { item ->
-            container.repository.answersFor(item.id)?.let { item.id to it }
-        }.toMap()
+        val answers = container.repository.answersForAll(engine.items.map { it.id })
         recorder = sessionRecorder
         quiz = QuizController(engine, answers, settings.closeEnoughAction, settings.requireOnYomiInKatakana)
         sessionType = type
         sessionDryRun = settings.dryRun
         sessionShowAnswerOnWrong = settings.showAnswerOnWrong
         sessionKeepKeyboardOpen = settings.keepKeyboardOpen
+        sessionSwitchKeyboard = settings.autoSwitchKeyboard
         sessionShowSrsIndicator = settings.showSrsIndicator
         answeredQuestions = 0
         correctQuestions = 0
@@ -835,6 +840,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             canUndo = controller.canUndo,
             showAnswerOnWrong = sessionShowAnswerOnWrong,
             keepKeyboardOpen = sessionKeepKeyboardOpen,
+            switchKeyboard = sessionSwitchKeyboard,
             showSrsIndicator = sessionShowSrsIndicator,
             success = success,
             successRate = successRate(),

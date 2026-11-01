@@ -30,6 +30,11 @@ class PitchRepository(private val open: () -> InputStream) {
      * kana-only words fall back to the reading when that reading has a single pattern in the
      * source (おはよう is listed as お早う), never guessing between homophones.
      */
+    /** Reads the table ahead of time, so opening the first item does not wait for it. */
+    suspend fun preload() {
+        withContext(Dispatchers.Default) { table.size }
+    }
+
     suspend fun lookup(word: String, readings: List<String>): List<PitchAccent> = withContext(Dispatchers.Default) {
         val wanted = readings.filter { it.isNotBlank() }.distinct()
         if (wanted.isEmpty()) return@withContext emptyList()

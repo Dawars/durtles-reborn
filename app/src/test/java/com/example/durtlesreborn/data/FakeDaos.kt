@@ -52,6 +52,7 @@ internal class FakeMaterials : StudyMaterialDao {
     val rows = mutableMapOf<Long, StudyMaterialEntity>()
     override suspend fun upsert(materials: List<StudyMaterialEntity>) { materials.forEach { rows[it.id] = it } }
     override suspend fun bySubject(subjectId: Long) = rows.values.firstOrNull { it.subjectId == subjectId }
+    override suspend fun bySubjects(ids: List<Long>) = rows.values.filter { it.subjectId in ids }
 }
 
 internal class FakeState : SyncStateDao {

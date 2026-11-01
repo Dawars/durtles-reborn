@@ -81,6 +81,9 @@ interface StudyMaterialDao {
 
     @Query("SELECT * FROM study_material WHERE subjectId = :subjectId")
     suspend fun bySubject(subjectId: Long): StudyMaterialEntity?
+
+    @Query("SELECT * FROM study_material WHERE subjectId IN (:ids)")
+    suspend fun bySubjects(ids: List<Long>): List<StudyMaterialEntity>
 }
 
 @Dao

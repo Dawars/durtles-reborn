@@ -25,6 +25,7 @@ class SettingsStoreTest {
         assertFalse(s.dryRun)
         assertFalse(s.requireOnYomiInKatakana)
         assertTrue(s.showAnswerOnWrong)
+        assertTrue(s.autoSwitchKeyboard)
         assertFalse(s.textStageLabels)
         assertFalse(s.reviewBackToBack)
         assertFalse(s.reviewReadingFirst)

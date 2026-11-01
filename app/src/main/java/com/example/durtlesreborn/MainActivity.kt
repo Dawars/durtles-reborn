@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.durtlesreborn.settings.AppSettings
 import com.example.durtlesreborn.ui.AppRoot
+import com.example.durtlesreborn.ui.LocalBlurContextSentences
 import com.example.durtlesreborn.ui.LocalStrokeRepository
 import com.example.durtlesreborn.ui.MainViewModel
 import com.example.durtlesreborn.ui.TsurukameTheme
@@ -52,7 +53,10 @@ class MainActivity : ComponentActivity() {
             }
 
             TsurukameTheme(dark) {
-                CompositionLocalProvider(LocalStrokeRepository provides (application as DurtlesApp).container.strokeRepository) {
+                CompositionLocalProvider(
+                    LocalStrokeRepository provides (application as DurtlesApp).container.strokeRepository,
+                    LocalBlurContextSentences provides settings.blurContextSentences,
+                ) {
                     AppRoot(viewModel)
                 }
             }

@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 private val reviewOrders = listOf(
-    "SHUFFLE", "DUE", "LEVEL", "TYPE", "SRS",
+    "SHUFFLE", "DUE", "LEVEL", "TYPE", "SRS", "HIGHEST_LEVEL_THEN_TYPE",
     "LEVEL_THEN_TYPE", "LEVEL_THEN_SRS", "TYPE_THEN_LEVEL", "TYPE_THEN_SRS", "SRS_THEN_TYPE", "SRS_THEN_LEVEL",
     "LEVEL_THEN_TYPE_THEN_SRS", "LEVEL_THEN_SRS_THEN_TYPE", "TYPE_THEN_LEVEL_THEN_SRS",
     "TYPE_THEN_SRS_THEN_LEVEL", "SRS_THEN_TYPE_THEN_LEVEL", "SRS_THEN_LEVEL_THEN_TYPE",
@@ -77,6 +77,7 @@ internal val tsurukameReviewOrders: List<Pair<String, (AppSettings) -> AppSettin
     "Random" to reviewOrder("SHUFFLE"),
     "Ascending SRS stage" to reviewOrder("SRS"),
     "Descending SRS stage" to reviewOrder("SRS", reversed = true),
+    "Current level first" to reviewOrder("HIGHEST_LEVEL_THEN_TYPE"),
     "Lowest level first" to reviewOrder("LEVEL_THEN_TYPE"),
     "Newest available first" to reviewOrder("DUE", reversed = true),
     "Oldest available first" to reviewOrder("DUE"),
@@ -96,6 +97,7 @@ private enum class SettingsPage(val title: String) {
     APPEARANCE("Appearance & Notifications"),
     LESSONS("Lessons"),
     REVIEWS("Reviews"),
+    SUBJECTS("Radicals, Kanji & Vocabulary"),
 }
 
 /** A list of options with a checkmark on the current one, opened from a row. */
@@ -146,6 +148,7 @@ fun SettingsScreen(
                     page == SettingsPage.ROOT -> RootPage(s, state.message, onChange, onExport, onImport, onMessage, onSync, onSignOut, audioDownload, onOpenAudio) { page = it }
                     page == SettingsPage.APPEARANCE -> AppearancePage(s, onChange, openChoice)
                     page == SettingsPage.LESSONS -> LessonsPage(s, onChange, openChoice)
+                    page == SettingsPage.SUBJECTS -> SubjectsPage(s, onChange)
                     else -> ReviewsPage(s, onChange, openChoice)
                 }
             }
@@ -171,6 +174,14 @@ private fun RootPage(
         TkRow(SettingsPage.APPEARANCE.title, chevron = true, onClick = { onOpenPage(SettingsPage.APPEARANCE) })
         TkRow(SettingsPage.LESSONS.title, chevron = true, onClick = { onOpenPage(SettingsPage.LESSONS) })
         TkRow(SettingsPage.REVIEWS.title, chevron = true, onClick = { onOpenPage(SettingsPage.REVIEWS) })
+        TkRow(SettingsPage.SUBJECTS.title, chevron = true, onClick = { onOpenPage(SettingsPage.SUBJECTS) })
+    }
+    TkSection(
+        "Keyboard",
+        footer = "Tells the keyboard to use Japanese on reading questions and English on meaning questions. " +
+            "It needs a keyboard that follows what the field asks for. With any other keyboard, romaji is converted to kana for you.",
+    ) {
+        TkSwitchRow("Switch keyboard automatically", checked = s.autoSwitchKeyboard) { onChange { it.copy(autoSwitchKeyboard = !it.autoSwitchKeyboard) } }
     }
     TkSection(
         "Audio",
@@ -234,6 +245,13 @@ private fun AppearancePage(
     }
     TkSection {
         TkRow("Add widget to home screen", titleColor = TkFixed.tint, onClick = { WidgetUpdater.requestPin(context) })
+    }
+}
+
+@Composable
+private fun SubjectsPage(s: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+    TkSection {
+        TkSwitchRow("Blur context sentences", checked = s.blurContextSentences) { onChange { it.copy(blurContextSentences = !it.blurContextSentences) } }
     }
 }
 

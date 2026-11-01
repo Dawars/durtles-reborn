@@ -3,7 +3,10 @@
 // Rewritten in Kotlin and changed for this app.
 package com.example.durtlesreborn.ui
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,10 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -218,19 +224,34 @@ private fun MarkupCell(text: AnnotatedString, color: Color = LocalTk.current.lab
     )
 }
 
-/** The Japanese with the word picked out, and its translation. */
+/** The Japanese with the word picked out, and the translation blurred until the cell is tapped. */
 @Composable
 private fun ContextSentenceCell(info: LessonInfo, sentence: ContextSentence) {
     val tk = LocalTk.current
+    val blurByDefault = LocalBlurContextSentences.current
+    var blurred by remember(info.id, sentence) { mutableStateOf(blurByDefault) }
+    val hidden by animateFloatAsState(if (blurred) 1f else 0f, tween(200), label = "sentence blur")
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp),
+        Modifier.fillMaxWidth().clickable(enabled = blurred) { blurred = false }.padding(horizontal = 16.dp, vertical = 11.dp)
+            .semantics { if (blurred) contentDescription = "${sentence.japanese}. Tap to show the translation" },
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
             highlightWord(sentence.japanese, info.title),
             style = TextStyle(color = tk.label, fontSize = 17.sp, lineHeight = 22.sp, localeList = JapaneseLocale),
         )
-        if (sentence.english.isNotEmpty()) TkText(sentence.english, color = tk.label)
+        if (sentence.english.isNotEmpty()) {
+            TkText(
+                sentence.english,
+                color = tk.label.copy(alpha = 1f - 0.25f * hidden),
+                // Blurring needs Android 12. Older versions hide the text outright instead.
+                modifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Modifier.blur(5.dp * hidden, BlurredEdgeTreatment.Unbounded)
+                } else {
+                    Modifier.graphicsLayer { alpha = 1f - hidden }
+                },
+            )
+        }
     }
 }
 

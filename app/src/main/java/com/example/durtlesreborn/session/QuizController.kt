@@ -40,6 +40,8 @@ data class QuizProgress(
     val answeredItems: Int,
     val totalItems: Int,
     val wrappingUp: Boolean = false,
+    /** Whether any question in this session has been answered yet. */
+    val anyAnswered: Boolean = false,
 )
 
 /**
@@ -74,6 +76,7 @@ class QuizController(
             answeredItems = engine.items.count { it.reported || it.pending },
             totalItems = engine.items.count { !it.abandoned },
             wrappingUp = engine.state == SessionState.ACTIVE && engine.numStartedItems >= engine.numActiveItems,
+            anyAnswered = engine.items.any { it.numAnswers > 0 || it.reported || it.pending },
         )
 
     /** The current question, choosing one if none is active. Null when the session is done. */

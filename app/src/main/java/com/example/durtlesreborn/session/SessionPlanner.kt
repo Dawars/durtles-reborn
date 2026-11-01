@@ -42,8 +42,11 @@ data class SessionSubject(
     val passed get() = srsStageIndex >= srs.passedIndex
 }
 
-/** The sort keys the original's order enums are made of, plus DUE for the earliest due first. */
-enum class SortKey { LEVEL, TYPE, SRS, DUE, RADICALS_FIRST }
+/**
+ * The sort keys the original's order enums are made of, plus DUE for the earliest due first and
+ * HIGHEST_LEVEL for Tsurukame's "Current level first".
+ */
+enum class SortKey { LEVEL, TYPE, SRS, DUE, RADICALS_FIRST, HIGHEST_LEVEL }
 
 /**
  * An ordering of subjects. An empty key list is "shuffle": every subject compares equal, so they
@@ -61,6 +64,7 @@ class SubjectOrder(val keys: List<SortKey>, val shuffle: Boolean = keys.isEmpty(
                 SortKey.SRS -> compareBy { it.srsStageIndex }
                 SortKey.DUE -> compareBy { it.dueAt }
                 SortKey.RADICALS_FIRST -> compareByDescending { it.kind == SubjectKind.RADICAL }
+                SortKey.HIGHEST_LEVEL -> compareByDescending { it.level }
             }
             result = result.then(next)
         }

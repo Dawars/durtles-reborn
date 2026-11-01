@@ -97,7 +97,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
@@ -135,6 +137,24 @@ private fun QuestionKind.taskPrompt() = when (this) {
 }
 
 /**
+ * What the input field tells the keyboard. Android apps cannot switch to another keyboard the way
+ * iOS apps can, but they can say which language a field wants: a keyboard that honours the hint
+ * changes mode by itself as the question changes. Without such a keyboard, romaji typed on an
+ * English keyboard is still converted to kana by the app.
+ */
+internal fun answerKeyboardOptions(kana: Boolean, switchKeyboard: Boolean) = KeyboardOptions(
+    capitalization = KeyboardCapitalization.None,
+    autoCorrectEnabled = false,
+    keyboardType = if (switchKeyboard && !kana) KeyboardType.Ascii else KeyboardType.Text,
+    imeAction = ImeAction.Done,
+    hintLocales = when {
+        !switchKeyboard -> null
+        kana -> LocaleList("ja-JP")
+        else -> LocaleList("en-US")
+    },
+)
+
+/**
  * Tsurukame's review screen: the item on its subject's gradient filling the screen, a prompt strip
  * saying what to answer, the answer field, and the keyboard right below. A correct answer goes
  * straight to the next question with a burst of sparks. A wrong one turns the answer red and slides
@@ -161,7 +181,10 @@ fun QuizScreen(
     val wrong = state.answered && state.feedback?.correct == false
     var revealed by remember(card.itemId, card.kind, state.answered) { mutableStateOf(false) }
     val showDetails = wrong && (state.showAnswerOnWrong || revealed)
-    BackHandler(enabled = openSubject == null) { if (menuOpen) menuOpen = false else onLeave() }
+    var confirmEnd by rememberSaveable { mutableStateOf(false) }
+    // Leaving asks first once something has been answered, from Back as from the menu. Undo is in the menu.
+    val endSession = { if (state.progress.anyAnswered) confirmEnd = true else onLeave() }
+    BackHandler(enabled = openSubject == null) { if (menuOpen) menuOpen = false else endSession() }
 
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -179,8 +202,10 @@ fun QuizScreen(
             }
         }
     }
+    // The keyboard already vibrated for its own Enter key, so only the on-screen tick adds one.
+    var submittedByKeyboard by remember { mutableStateOf(false) }
     LaunchedEffect(state.success?.id) {
-        if (state.success != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        if (state.success != null && !submittedByKeyboard) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
     // The text keeps the keyboard's selection and composition unless the romaji conversion changed it.
@@ -277,8 +302,13 @@ fun QuizScreen(
                         localeList = if (card.kanaInput) JapaneseLocale else null,
                     ),
                     cursorBrush = SolidColor(TkFixed.tint),
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { if (canSubmit) onSubmit() }),
+                    keyboardOptions = answerKeyboardOptions(card.kanaInput, state.switchKeyboard),
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (canSubmit) {
+                            submittedByKeyboard = true
+                            onSubmit()
+                        }
+                    }),
                     modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 62.dp)
                         .offset { IntOffset(shake.value.roundToInt(), 0) }
                         .focusRequester(focus)
@@ -318,7 +348,10 @@ fun QuizScreen(
                 }
                 Box(
                     Modifier.align(Alignment.CenterEnd).size(width = 53.dp, height = 58.dp)
-                        .clickable(enabled = canSubmit, onClick = onSubmit)
+                        .clickable(enabled = canSubmit) {
+                            submittedByKeyboard = false
+                            onSubmit()
+                        }
                         .semantics { contentDescription = if (state.answered) "Next question" else "Submit answer" },
                     Alignment.Center,
                 ) {
@@ -367,13 +400,25 @@ fun QuizScreen(
                 state,
                 onClose = { menuOpen = false },
                 onWrapUp = onWrapUp,
-                onLeave = onLeave,
+                onLeave = endSession,
                 onSkip = onSkip,
                 onDontKnow = onDontKnow,
                 onUndo = onUndo,
             )
         }
         openSubject?.let { id -> SubjectOverlay(id, loadInfo, onDismiss = { openSubject = null }, onPlayAudio = onPlayAudio) }
+        if (confirmEnd) {
+            TkActionSheet(
+                title = "End review session?",
+                message = "Your answers are saved, and you can carry on later from the home screen.",
+                action = "End review session",
+                onAction = {
+                    confirmEnd = false
+                    onLeave()
+                },
+                onDismiss = { confirmEnd = false },
+            )
+        }
     }
 }
 

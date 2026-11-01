@@ -3,6 +3,8 @@ package com.example.durtlesreborn.data
 import com.example.durtlesreborn.answer.SubjectAnswers
 import com.example.durtlesreborn.session.SessionSubject
 import com.example.durtlesreborn.session.SrsSystem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 
@@ -44,7 +46,8 @@ class SessionRepository(
     suspend fun levelUpIds(): Set<Long> {
         val level = userLevel()
         if (level >= maxLevel()) return emptySet()
-        return subjects.kanjiForLevel(level).flatMap { listOf(it.id) + SubjectContent.parse(it.json).componentSubjectIds }.toSet()
+        val kanji = subjects.kanjiForLevel(level)
+        return withContext(Dispatchers.Default) { kanji.flatMap { listOf(it.id) + SubjectContent.parse(it.json).componentSubjectIds }.toSet() }
     }
 
     suspend fun dueReviews(): List<SessionSubject> = toSessionSubjects(assignments.reviewsDue(clock()))
@@ -69,6 +72,18 @@ class SessionRepository(
         val synonyms = materials.bySubject(subjectId)?.meaningSynonymsJson
             ?.let { apiJsonList(it) } ?: emptyList()
         return SubjectContent.parse(subject.json).answers(synonyms)
+    }
+
+    /** The answers for many subjects at once, in a few queries instead of two for each subject. */
+    suspend fun answersForAll(subjectIds: List<Long>): Map<Long, SubjectAnswers> {
+        val found = subjectIds.chunked(500).flatMap { subjects.byIds(it) }
+        val synonyms = subjectIds.chunked(500).flatMap { materials.bySubjects(it) }.associateBy { it.subjectId }
+        return withContext(Dispatchers.Default) {
+            found.associate { subject ->
+                val own = synonyms[subject.id]?.meaningSynonymsJson?.let { apiJsonList(it) } ?: emptyList()
+                subject.id to SubjectContent.parse(subject.json).answers(own)
+            }
+        }
     }
 
     /** The stored subjects, for when only their titles and kinds are needed. */
@@ -109,10 +124,12 @@ class SessionRepository(
         val fallback = systems.values.firstOrNull() ?: SrsSystem(1, 5, 9)
         val now = clock()
 
-        return candidates.mapNotNull { assignment ->
-            val subject = byId[assignment.subjectId] ?: return@mapNotNull null
-            if (subject.hidden || subject.level > maxLevel) return@mapNotNull null
-            sessionSubject(subject, assignment, systems, fallback, now)
+        return withContext(Dispatchers.Default) {
+            candidates.mapNotNull { assignment ->
+                val subject = byId[assignment.subjectId] ?: return@mapNotNull null
+                if (subject.hidden || subject.level > maxLevel) return@mapNotNull null
+                sessionSubject(subject, assignment, systems, fallback, now)
+            }
         }
     }
 
@@ -128,9 +145,11 @@ class SessionRepository(
         val systems = srsSystems.all().associate { it.id to it.toSrsSystem() }
         val fallback = systems.values.firstOrNull() ?: SrsSystem(1, 5, 9)
         val now = clock()
-        return found.mapNotNull { subject ->
-            if (subject.hidden || subject.level > maxLevel) return@mapNotNull null
-            sessionSubject(subject, assignmentsBySubject[subject.id], systems, fallback, now)
+        return withContext(Dispatchers.Default) {
+            found.mapNotNull { subject ->
+                if (subject.hidden || subject.level > maxLevel) return@mapNotNull null
+                sessionSubject(subject, assignmentsBySubject[subject.id], systems, fallback, now)
+            }
         }
     }
 

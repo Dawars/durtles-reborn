@@ -178,6 +178,9 @@ internal val DarkTk = TkColors(
 
 val LocalTk = staticCompositionLocalOf { LightTk }
 
+/** Whether example sentence translations start blurred, from `blur_context_sentences`. */
+val LocalBlurContextSentences = staticCompositionLocalOf { true }
+
 /** Japanese text is tagged so Android picks Japanese glyphs for the kanji, not the Chinese forms. */
 val JapaneseLocale = LocaleList("ja-JP")
 
