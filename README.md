@@ -1,6 +1,6 @@
-# Durtles Reborn
+# Urashima
 
-An unofficial Android client for [WaniKani](https://www.wanikani.com), written from scratch in Kotlin and Jetpack Compose. It follows the feature set of the long-standing third-party clients (Smouldering Durtles in particular) but with its own UI, colours and artwork.
+An unofficial Android client for [WaniKani](https://www.wanikani.com), written from scratch in Kotlin and Jetpack Compose. It follows the feature set of the long-standing third-party clients (Smouldering Durtles in particular), and its design is based on [Tsurukame](https://github.com/davidsansome/tsurukame) for iOS. See [Credits](#credits).
 
 > **Not affiliated with WaniKani or Tofugu.** "WaniKani" is a trademark of Tofugu LLC. This app is a third-party client that talks to the public WaniKani API v2 with a token you provide. Do not report problems with it to WaniKani.
 
@@ -68,6 +68,8 @@ docs/                  parity checklists and release notes
 
 ## Credits
 
+Urashima is a fork of [Durtles Reborn](https://github.com/MaruMaru1000/durtles-reborn) by MaruMaru1000 (GPL-3.0). Package and class names still use the old name, because changing the application id would make it a separate install.
+
 ### Design: Tsurukame
 
 The screens are modelled on [Tsurukame](https://github.com/davidsansome/tsurukame), the iOS WaniKani app by David Sansome and contributors, as its design stood at commit [50ac074](https://github.com/davidsansome/tsurukame/tree/50ac07485e9ba0d0d71f02d92c5557aae6bd62ef), before its visual refresh. Tsurukame is licensed under Apache 2.0, and a copy of the licence ships in `app/src/main/assets/TSURUKAME-LICENSE.txt`. This app is not affiliated with or endorsed by Tsurukame or its authors.
@@ -77,11 +79,11 @@ The screens are modelled on [Tsurukame](https://github.com/davidsansome/tsurukam
 | Colours and gradients, `ui/TkStyle.kt` | `ios/Style.swift` | Rewritten in Kotlin |
 | Screen layouts and behaviour; files with a "Based on Tsurukame" notice name their sources | `ios/` view controllers and table items | Rewritten in Kotlin and Compose, changed for Android |
 | Background, `res/drawable-nodpi/tk_launch_screen.jpg` | `launch_screen.imageset/launchscreen.jpg` | Resized and recompressed |
-| Avatar, `res/drawable-nodpi/tk_avatar.png` | App icon, `iTunesArtwork@3x.png` | Resized |
+| App icon, `res/drawable-nodpi/ic_launcher_foreground.png`, and avatar, `res/drawable-nodpi/tk_avatar.png` | App icon, `iTunesArtwork@3x.png` | Resized, and padded for the launcher |
 | `res/drawable-xxxhdpi/tk_srs_*`, `tk_thumb`, `tk_tick`, `tk_inbox`, `tk_add`, `tk_back` | Files of the same names in `ios/Resources/Assets.xcassets` | Unchanged |
 | `res/drawable-xxxhdpi/tk_menu`, `tk_cancel`, `tk_time`, `tk_volume`, `tk_search`, `tk_settings`, `tk_forward` | `baseline_*` and `ic_*` files in `ios/Resources/Assets.xcassets`, named like Google's [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0) | Unchanged |
 
-Tsurukame's repository does not name the artist of its turtle images. If you know who made them, please open an issue so they can be credited here.
+The app icon is Tsurukame's own. Apache 2.0 gives no rights to names or logos (section 6), so replace it before any store release. Tsurukame's repository does not name the artist of its turtle images. If you know who made them, please open an issue so they can be credited here.
 
 ### Data
 

@@ -144,7 +144,7 @@ private fun HomeHeader(d: Dashboard?, syncing: Boolean, a: DashboardActions) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    d?.username ?: "Durtles Reborn",
+                    d?.username ?: "Urashima",
                     maxLines = 1,
                     style = TextStyle(color = Color.White, fontSize = 22.sp, lineHeight = 27.sp, shadow = Shadow(Color.Black.copy(alpha = 0.4f), Offset(0f, 2f), 8f)),
                 )

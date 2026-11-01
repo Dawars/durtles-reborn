@@ -447,7 +447,7 @@ private fun BackupSection(message: String?, onExport: suspend () -> String, onIm
         "Backup",
         footer = message ?: "Save your settings to a file, or restore them from one. Your API token is never saved or restored.",
     ) {
-        TkRow("Back up settings", titleColor = TkFixed.tint, onClick = { save.launch("durtles_reborn_settings_${LocalDate.now()}.json") })
+        TkRow("Back up settings", titleColor = TkFixed.tint, onClick = { save.launch("urashima_settings_${LocalDate.now()}.json") })
         TkRow("Restore settings", titleColor = TkFixed.tint, onClick = { open.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) })
     }
 }
