@@ -1,0 +1,27 @@
+*.iml
+.gradle
+/local.properties
+build/
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Signing material: never commit the keystore or its passwords.
+/keystore/
+/keystore.properties
+
+# Staged release artifacts (rebuild with assembleRelease / bundleRelease).
+/dist/
+
+# IDE and build caches that are local to this machine.
+/.idea/
+/.kotlin/

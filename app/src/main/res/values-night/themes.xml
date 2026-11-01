@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.DurtlesReborn" parent="android:Theme.Material.NoActionBar" />
+</resources>

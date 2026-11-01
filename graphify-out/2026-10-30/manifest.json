@@ -1,0 +1,584 @@
+{
+  "app/build.gradle.kts": {
+    "mtime": 1793278578.3517435,
+    "seen": 1793344726.892415,
+    "ast_hash": "0e8e96a13bc61bdc3caaa072a3831451",
+    "semantic_hash": "0e8e96a13bc61bdc3caaa072a3831451"
+  },
+  "app/src/androidTest/java/com/example/durtlesreborn/ExampleInstrumentedTest.kt": {
+    "mtime": 1793260981.3402126,
+    "seen": 1793344726.8924217,
+    "ast_hash": "f4e5f68bbfd675abdf1d8eb9771e2161",
+    "semantic_hash": "f4e5f68bbfd675abdf1d8eb9771e2161"
+  },
+  "app/src/main/java/com/example/durtlesreborn/AppContainer.kt": {
+    "mtime": 1793345854.574954,
+    "seen": 1793346303.8791428,
+    "ast_hash": "b5fee929522e9eacbeee4cddee683b8c",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/DurtlesApp.kt": {
+    "mtime": 1793337093.9287262,
+    "seen": 1793344726.8924263,
+    "ast_hash": "311c63b521c401e3f3cd2d1a38ab7cfe",
+    "semantic_hash": "311c63b521c401e3f3cd2d1a38ab7cfe"
+  },
+  "app/src/main/java/com/example/durtlesreborn/MainActivity.kt": {
+    "mtime": 1793337284.4331222,
+    "seen": 1793344726.8924277,
+    "ast_hash": "a655ff661ee50a47103144d696339c34",
+    "semantic_hash": "a655ff661ee50a47103144d696339c34"
+  },
+  "app/src/main/java/com/example/durtlesreborn/answer/AnswerVerdict.kt": {
+    "mtime": 1793277348.9577088,
+    "seen": 1793344726.8924289,
+    "ast_hash": "31607dd7387730d0db5bfe154482966d",
+    "semantic_hash": "31607dd7387730d0db5bfe154482966d"
+  },
+  "app/src/main/java/com/example/durtlesreborn/answer/FuzzyMatching.kt": {
+    "mtime": 1793277156.6343586,
+    "seen": 1793344726.8924303,
+    "ast_hash": "1e0b09b244c3db607c62772a26d3a164",
+    "semantic_hash": "1e0b09b244c3db607c62772a26d3a164"
+  },
+  "app/src/main/java/com/example/durtlesreborn/answer/QuestionChecks.kt": {
+    "mtime": 1793277349.7552674,
+    "seen": 1793344726.8924315,
+    "ast_hash": "aa0635c5bbaea8bd079f9a325f870ea5",
+    "semantic_hash": "aa0635c5bbaea8bd079f9a325f870ea5"
+  },
+  "app/src/main/java/com/example/durtlesreborn/answer/Reading.kt": {
+    "mtime": 1793277303.332816,
+    "seen": 1793344726.892433,
+    "ast_hash": "9d3c9fd967b2f02ac9892dfdcceec898",
+    "semantic_hash": "9d3c9fd967b2f02ac9892dfdcceec898"
+  },
+  "app/src/main/java/com/example/durtlesreborn/api/ApiModels.kt": {
+    "mtime": 1793278396.8465922,
+    "seen": 1793344726.8924341,
+    "ast_hash": "32195e2cbb5bf617ac190ff6f781f49c",
+    "semantic_hash": "32195e2cbb5bf617ac190ff6f781f49c"
+  },
+  "app/src/main/java/com/example/durtlesreborn/api/WaniKaniClient.kt": {
+    "mtime": 1793278170.4083767,
+    "seen": 1793344726.8924353,
+    "ast_hash": "3b405d67b76f4466838ad9366765d210",
+    "semantic_hash": "3b405d67b76f4466838ad9366765d210"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/AppDatabase.kt": {
+    "mtime": 1793345854.3601103,
+    "seen": 1793346303.8791552,
+    "ast_hash": "5037942ec930d856eb2ba55e92fd7bbe",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/Daos.kt": {
+    "mtime": 1793344180.5728762,
+    "seen": 1793344726.892438,
+    "ast_hash": "989369377a745dafe8fbd9121ec1f365",
+    "semantic_hash": "989369377a745dafe8fbd9121ec1f365"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/Entities.kt": {
+    "mtime": 1793335904.2713022,
+    "seen": 1793344726.8924394,
+    "ast_hash": "2923900356112401fbd119552bff6ddb",
+    "semantic_hash": "2923900356112401fbd119552bff6ddb"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/LocalProgress.kt": {
+    "mtime": 1793278209.009822,
+    "seen": 1793344726.8924403,
+    "ast_hash": "9d8bb303e5e599ff01694d529f1a1839",
+    "semantic_hash": "9d8bb303e5e599ff01694d529f1a1839"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/Mappers.kt": {
+    "mtime": 1793335904.3364491,
+    "seen": 1793344726.8924415,
+    "ast_hash": "b93d114bbb7487b87d88eace74f86d77",
+    "semantic_hash": "b93d114bbb7487b87d88eace74f86d77"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/Migrations.kt": {
+    "mtime": 1793336011.4562974,
+    "seen": 1793344726.892443,
+    "ast_hash": "44a1e3145a46d2cf19702853265ccd74",
+    "semantic_hash": "44a1e3145a46d2cf19702853265ccd74"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/PendingReview.kt": {
+    "mtime": 1793278173.4819357,
+    "seen": 1793344726.8924441,
+    "ast_hash": "6e883e9d8e100639d1866282bfb8ce0b",
+    "semantic_hash": "6e883e9d8e100639d1866282bfb8ce0b"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/SearchRepository.kt": {
+    "mtime": 1793336000.7206995,
+    "seen": 1793344726.8924453,
+    "ast_hash": "2d5ce430371196f5496a4c4c63bf65c3",
+    "semantic_hash": "2d5ce430371196f5496a4c4c63bf65c3"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/SearchText.kt": {
+    "mtime": 1793335904.0107286,
+    "seen": 1793344726.8924468,
+    "ast_hash": "d50bc008a2a6ec978baf9c9790f8ca7a",
+    "semantic_hash": "d50bc008a2a6ec978baf9c9790f8ca7a"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/SessionRecorder.kt": {
+    "mtime": 1793278238.3974977,
+    "seen": 1793344726.892448,
+    "ast_hash": "0ac242169b7428168ca6f6260d8470c9",
+    "semantic_hash": "0ac242169b7428168ca6f6260d8470c9"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/SessionRepository.kt": {
+    "mtime": 1793344181.022352,
+    "seen": 1793344726.8924494,
+    "ast_hash": "78ddb34bd225dd0fec2b6a1691d96843",
+    "semantic_hash": "78ddb34bd225dd0fec2b6a1691d96843"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/StatsRepository.kt": {
+    "mtime": 1793344166.8441017,
+    "seen": 1793344726.8924508,
+    "ast_hash": "1c53c759d1b04975f16103aa70ad42e2",
+    "semantic_hash": "1c53c759d1b04975f16103aa70ad42e2"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/SubjectContent.kt": {
+    "mtime": 1793344180.876043,
+    "seen": 1793344726.892452,
+    "ast_hash": "6ca7159347827d4c1a708b32a65d9377",
+    "semantic_hash": "6ca7159347827d4c1a708b32a65d9377"
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/SyncEngine.kt": {
+    "mtime": 1793345854.2266862,
+    "seen": 1793346303.8791716,
+    "ast_hash": "49f96e88f18074ebc7e4bf4e9feb45b5",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/kana/Kana.kt": {
+    "mtime": 1793278530.213272,
+    "seen": 1793344726.8924544,
+    "ast_hash": "46135523f13bc5cf104df114d71a5da9",
+    "semantic_hash": "46135523f13bc5cf104df114d71a5da9"
+  },
+  "app/src/main/java/com/example/durtlesreborn/kana/RomajiTable.kt": {
+    "mtime": 1793277275.3983219,
+    "seen": 1793344726.8924556,
+    "ast_hash": "04a7f8b94e88ce6c61da8800aa341953",
+    "semantic_hash": "04a7f8b94e88ce6c61da8800aa341953"
+  },
+  "app/src/main/java/com/example/durtlesreborn/notify/AlertSource.kt": {
+    "mtime": 1793337053.753481,
+    "seen": 1793344726.892457,
+    "ast_hash": "98ce9c8624e050f54ff1785de2ccf3e6",
+    "semantic_hash": "98ce9c8624e050f54ff1785de2ccf3e6"
+  },
+  "app/src/main/java/com/example/durtlesreborn/notify/AndroidNotifications.kt": {
+    "mtime": 1793337087.1032546,
+    "seen": 1793344726.8924582,
+    "ast_hash": "19cee8681dacd9fb4846545375fbe9b3",
+    "semantic_hash": "19cee8681dacd9fb4846545375fbe9b3"
+  },
+  "app/src/main/java/com/example/durtlesreborn/notify/NotificationPolicy.kt": {
+    "mtime": 1793336826.2285066,
+    "seen": 1793344726.8924596,
+    "ast_hash": "04e8624408e4a0cc06fd3fea212abfd2",
+    "semantic_hash": "04e8624408e4a0cc06fd3fea212abfd2"
+  },
+  "app/src/main/java/com/example/durtlesreborn/notify/NotificationUpdater.kt": {
+    "mtime": 1793337085.3888032,
+    "seen": 1793344726.8924608,
+    "ast_hash": "6e10cc78c9c14802e1d8f29f9d3b8662",
+    "semantic_hash": "6e10cc78c9c14802e1d8f29f9d3b8662"
+  },
+  "app/src/main/java/com/example/durtlesreborn/notify/SessionWidgetProvider.kt": {
+    "mtime": 1793337114.4181159,
+    "seen": 1793344726.8924618,
+    "ast_hash": "d199fa4ac7e6d3357f10115c10f520f2",
+    "semantic_hash": "d199fa4ac7e6d3357f10115c10f520f2"
+  },
+  "app/src/main/java/com/example/durtlesreborn/notify/WidgetContent.kt": {
+    "mtime": 1793337059.4055116,
+    "seen": 1793344726.8924632,
+    "ast_hash": "170fd9afaa4f23770608274c1d3e4460",
+    "semantic_hash": "170fd9afaa4f23770608274c1d3e4460"
+  },
+  "app/src/main/java/com/example/durtlesreborn/session/QuizController.kt": {
+    "mtime": 1793337621.0188785,
+    "seen": 1793344726.8924644,
+    "ast_hash": "50d20df8723693221f5a57d15cf5e6b3",
+    "semantic_hash": "50d20df8723693221f5a57d15cf5e6b3"
+  },
+  "app/src/main/java/com/example/durtlesreborn/session/SessionEngine.kt": {
+    "mtime": 1793279297.0969448,
+    "seen": 1793344726.8924656,
+    "ast_hash": "897d8ac96160c80107b3db55b400b9bd",
+    "semantic_hash": "897d8ac96160c80107b3db55b400b9bd"
+  },
+  "app/src/main/java/com/example/durtlesreborn/session/SessionModel.kt": {
+    "mtime": 1793279291.076638,
+    "seen": 1793344726.892467,
+    "ast_hash": "5a964904f033cc4dad27358519815633",
+    "semantic_hash": "5a964904f033cc4dad27358519815633"
+  },
+  "app/src/main/java/com/example/durtlesreborn/session/SessionPlanner.kt": {
+    "mtime": 1793279305.5409138,
+    "seen": 1793344726.8924682,
+    "ast_hash": "3b02944bbdda483ae5be41a5eb79ffa8",
+    "semantic_hash": "3b02944bbdda483ae5be41a5eb79ffa8"
+  },
+  "app/src/main/java/com/example/durtlesreborn/settings/SettingsStore.kt": {
+    "mtime": 1793337509.1825197,
+    "seen": 1793344726.8924694,
+    "ast_hash": "fb844d1bc6376dda906ea4901af5b212",
+    "semantic_hash": "fb844d1bc6376dda906ea4901af5b212"
+  },
+  "app/src/main/java/com/example/durtlesreborn/settings/TokenStore.kt": {
+    "mtime": 1793278495.3392465,
+    "seen": 1793344726.8924706,
+    "ast_hash": "f546464720c525eecce1607358c6dbc6",
+    "semantic_hash": "f546464720c525eecce1607358c6dbc6"
+  },
+  "app/src/main/java/com/example/durtlesreborn/sync/SyncWorker.kt": {
+    "mtime": 1793278847.2822056,
+    "seen": 1793344726.8924718,
+    "ast_hash": "9907bbec90558a397b1fc8bc96a80e99",
+    "semantic_hash": "9907bbec90558a397b1fc8bc96a80e99"
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/Format.kt": {
+    "mtime": 1793278641.7826188,
+    "seen": 1793344726.892473,
+    "ast_hash": "9bba18a3c9ab60c4ac4b89862e0b7baa",
+    "semantic_hash": "9bba18a3c9ab60c4ac4b89862e0b7baa"
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/LessonScreen.kt": {
+    "mtime": 1793337254.8043628,
+    "seen": 1793344726.8924744,
+    "ast_hash": "0ac22b1f936709a9e7bd9ffc5132333e",
+    "semantic_hash": "0ac22b1f936709a9e7bd9ffc5132333e"
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/MainViewModel.kt": {
+    "mtime": 1793345999.4641552,
+    "seen": 1793346303.8791947,
+    "ast_hash": "ff7630384c9a125fae41abf22b93fab6",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/Screens.kt": {
+    "mtime": 1793346010.4739866,
+    "seen": 1793346303.8791955,
+    "ast_hash": "beb839ac6b01df2dc29098b7b2d6790b",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/SearchScreen.kt": {
+    "mtime": 1793337520.2840304,
+    "seen": 1793344726.8924787,
+    "ast_hash": "abd966ca39e6b31c778505563321f097",
+    "semantic_hash": "abd966ca39e6b31c778505563321f097"
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/SettingsScreen.kt": {
+    "mtime": 1793346010.5945864,
+    "seen": 1793346303.8791974,
+    "ast_hash": "a268ccf1e6a4b2e7b6f4d535e6adac88",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/StatsScreen.kt": {
+    "mtime": 1793344276.660362,
+    "seen": 1793344726.892481,
+    "ast_hash": "f44fdd31e4e9d1957ebde1b39aee7394",
+    "semantic_hash": "f44fdd31e4e9d1957ebde1b39aee7394"
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/Theme.kt": {
+    "mtime": 1793346140.6867652,
+    "seen": 1793346303.8791995,
+    "ast_hash": "d2d3a88fc391510420a11e86ae489afb",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/example/durtlesreborn/ExampleUnitTest.kt": {
+    "mtime": 1793260981.3195882,
+    "seen": 1793344726.8924835,
+    "ast_hash": "97327d4778d358733eaeabe9878d1ccd",
+    "semantic_hash": "97327d4778d358733eaeabe9878d1ccd"
+  },
+  "app/src/test/java/com/example/durtlesreborn/answer/FuzzyMatchingTest.kt": {
+    "mtime": 1793277161.0239718,
+    "seen": 1793344726.8924847,
+    "ast_hash": "8035acb48f3e641acab17aeb01c394ab",
+    "semantic_hash": "8035acb48f3e641acab17aeb01c394ab"
+  },
+  "app/src/test/java/com/example/durtlesreborn/answer/QuestionChecksTest.kt": {
+    "mtime": 1793277375.2623203,
+    "seen": 1793344726.8924859,
+    "ast_hash": "d8aaebbb2d587c15d4b33547cbf3ce34",
+    "semantic_hash": "d8aaebbb2d587c15d4b33547cbf3ce34"
+  },
+  "app/src/test/java/com/example/durtlesreborn/api/WaniKaniClientTest.kt": {
+    "mtime": 1793278258.5222428,
+    "seen": 1793344726.892487,
+    "ast_hash": "0956f02981222c45b4e6931354960101",
+    "semantic_hash": "0956f02981222c45b4e6931354960101"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/EndToEndTest.kt": {
+    "mtime": 1793337536.9726639,
+    "seen": 1793344726.8924885,
+    "ast_hash": "f7c75705a64ae172b68918feedb38ea2",
+    "semantic_hash": "f7c75705a64ae172b68918feedb38ea2"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/FakeDaos.kt": {
+    "mtime": 1793346090.8088133,
+    "seen": 1793346303.8792067,
+    "ast_hash": "f83d1dd95154748f59a7999c644875e7",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/LessonInfoTest.kt": {
+    "mtime": 1793335481.4227874,
+    "seen": 1793344726.892491,
+    "ast_hash": "39380eef306278347da3f676bba78361",
+    "semantic_hash": "39380eef306278347da3f676bba78361"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/LocalProgressTest.kt": {
+    "mtime": 1793278334.6088793,
+    "seen": 1793344726.892492,
+    "ast_hash": "354bcaa21104ddfc3fe96fe57295c273",
+    "semantic_hash": "354bcaa21104ddfc3fe96fe57295c273"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/SearchTest.kt": {
+    "mtime": 1793336003.9827332,
+    "seen": 1793344726.8924932,
+    "ast_hash": "18eda789d56cb4675ed7213aabf62861",
+    "semantic_hash": "18eda789d56cb4675ed7213aabf62861"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/SessionRepositoryTest.kt": {
+    "mtime": 1793337531.9036205,
+    "seen": 1793344726.8924947,
+    "ast_hash": "26aca64ff89736b79ef1f9742653f0db",
+    "semantic_hash": "26aca64ff89736b79ef1f9742653f0db"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/StatsTest.kt": {
+    "mtime": 1793344320.9443917,
+    "seen": 1793344726.8924959,
+    "ast_hash": "64080316d0825d831b05e184b74f16d1",
+    "semantic_hash": "64080316d0825d831b05e184b74f16d1"
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/SyncEngineTest.kt": {
+    "mtime": 1793278412.5061204,
+    "seen": 1793344726.892497,
+    "ast_hash": "bd19ab655ad09ba21f0ed49d56d16a13",
+    "semantic_hash": "bd19ab655ad09ba21f0ed49d56d16a13"
+  },
+  "app/src/test/java/com/example/durtlesreborn/notify/NotificationTest.kt": {
+    "mtime": 1793336937.204066,
+    "seen": 1793344726.8924983,
+    "ast_hash": "d2bc4974bb21ccea5fa276c62d5bb3b7",
+    "semantic_hash": "d2bc4974bb21ccea5fa276c62d5bb3b7"
+  },
+  "app/src/test/java/com/example/durtlesreborn/notify/WidgetFormatterTest.kt": {
+    "mtime": 1793337159.0543063,
+    "seen": 1793344726.8924997,
+    "ast_hash": "bf4da544d7f34cf2aa7ec7c970de9f22",
+    "semantic_hash": "bf4da544d7f34cf2aa7ec7c970de9f22"
+  },
+  "app/src/test/java/com/example/durtlesreborn/session/LessonSessionTest.kt": {
+    "mtime": 1793335475.2052107,
+    "seen": 1793344726.8925006,
+    "ast_hash": "eebd19209af5ef9a6131a22ecce860bf",
+    "semantic_hash": "eebd19209af5ef9a6131a22ecce860bf"
+  },
+  "app/src/test/java/com/example/durtlesreborn/session/QuizControllerTest.kt": {
+    "mtime": 1793337624.851788,
+    "seen": 1793344726.892502,
+    "ast_hash": "f9de505c00e77b5382026929c6ef6804",
+    "semantic_hash": "f9de505c00e77b5382026929c6ef6804"
+  },
+  "app/src/test/java/com/example/durtlesreborn/session/SessionEngineTest.kt": {
+    "mtime": 1793277566.2387447,
+    "seen": 1793344726.8925033,
+    "ast_hash": "1a4e2be04ebca22af01903fa8e16154c",
+    "semantic_hash": "1a4e2be04ebca22af01903fa8e16154c"
+  },
+  "app/src/test/java/com/example/durtlesreborn/session/SessionPlannerTest.kt": {
+    "mtime": 1793278307.4238684,
+    "seen": 1793344726.8925042,
+    "ast_hash": "c258d8b73fb5bc13ab0106b19b7fd913",
+    "semantic_hash": "c258d8b73fb5bc13ab0106b19b7fd913"
+  },
+  "app/src/test/java/com/example/durtlesreborn/settings/InMemoryDataStore.kt": {
+    "mtime": 1793335582.8068907,
+    "seen": 1793344726.8925056,
+    "ast_hash": "f2fd27a4a46c3eccfc8ea7a6900a0712",
+    "semantic_hash": "f2fd27a4a46c3eccfc8ea7a6900a0712"
+  },
+  "app/src/test/java/com/example/durtlesreborn/settings/SettingsStoreTest.kt": {
+    "mtime": 1793337368.3493927,
+    "seen": 1793344726.8925068,
+    "ast_hash": "af679f4825c2e490537f6bfa81e02d80",
+    "semantic_hash": "af679f4825c2e490537f6bfa81e02d80"
+  },
+  "app/src/test/java/com/example/durtlesreborn/settings/TokenStoreTest.kt": {
+    "mtime": 1793335586.1268318,
+    "seen": 1793344726.8925083,
+    "ast_hash": "90f8585097654b1ef777bb40de295e1a",
+    "semantic_hash": "90f8585097654b1ef777bb40de295e1a"
+  },
+  "app/src/test/java/com/example/durtlesreborn/ui/FormatTest.kt": {
+    "mtime": 1793278644.2301612,
+    "seen": 1793344726.8925092,
+    "ast_hash": "7607d202f13dd36b1b30de5aa79554d2",
+    "semantic_hash": "7607d202f13dd36b1b30de5aa79554d2"
+  },
+  "app/src/test/java/com/example/durtlesreborn/ui/ThemeTest.kt": {
+    "mtime": 1793346117.1572568,
+    "seen": 1793346303.879226,
+    "ast_hash": "916b8495999599f4064d3fecd12ddd03",
+    "semantic_hash": ""
+  },
+  "build.gradle.kts": {
+    "mtime": 1793277627.866582,
+    "seen": 1793344726.8925118,
+    "ast_hash": "5beceb489774e97ce3670cbb57a47657",
+    "semantic_hash": "5beceb489774e97ce3670cbb57a47657"
+  },
+  "gradlew": {
+    "mtime": 1793260980.4670866,
+    "seen": 1793344726.892513,
+    "ast_hash": "266606e78242737ef3da02a80ea0564d",
+    "semantic_hash": "266606e78242737ef3da02a80ea0564d"
+  },
+  "settings.gradle.kts": {
+    "mtime": 1793260981.0092802,
+    "seen": 1793344726.8925142,
+    "ast_hash": "ae7b66e9fcbb94cb0dfbd7d974f77a13",
+    "semantic_hash": "ae7b66e9fcbb94cb0dfbd7d974f77a13"
+  },
+  "app/src/main/java/com/example/durtlesreborn/settings/SettingsBackup.kt": {
+    "mtime": 1793344957.1445768,
+    "seen": 1793345584.5499961,
+    "ast_hash": "0a3a5e44fe9fc03d495a828d20a6bb14",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/example/durtlesreborn/settings/SettingsBackupTest.kt": {
+    "mtime": 1793344958.4667335,
+    "seen": 1793345584.5500307,
+    "ast_hash": "4bba780a76e875e389b6677d2715dda5",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1793346297.8942878,
+    "seen": 1793346303.87923,
+    "ast_hash": "46a853b941187af87a38c76f3c65305d",
+    "semantic_hash": ""
+  },
+  "docs/parity-features.md": {
+    "mtime": 1793346299.7055185,
+    "seen": 1793346303.879231,
+    "ast_hash": "daa0a60fab0a7ccb17c41e99856fa7cf",
+    "semantic_hash": ""
+  },
+  "docs/parity-settings.md": {
+    "mtime": 1793345579.3440895,
+    "seen": 1793345584.5500407,
+    "ast_hash": "e76620ae95fbc4f6a3849ebdc6ad7309",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-hdpi/ic_launcher.webp": {
+    "mtime": 1793260980.802344,
+    "seen": 1793345584.5500417,
+    "ast_hash": "39d9bb21eb48f128a71c3f01ad3cd427",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-hdpi/ic_launcher_round.webp": {
+    "mtime": 1793260980.8049808,
+    "seen": 1793345584.5500424,
+    "ast_hash": "70d6f58af3c76ee221c829b1ce9daa04",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-mdpi/ic_launcher.webp": {
+    "mtime": 1793260980.8099816,
+    "seen": 1793345584.550043,
+    "ast_hash": "d2acce71c7b46e5e9540d23a9f7b2166",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-mdpi/ic_launcher_round.webp": {
+    "mtime": 1793260980.813198,
+    "seen": 1793345584.550044,
+    "ast_hash": "6376acb48f96a855ee95c113cd7fd616",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-xhdpi/ic_launcher.webp": {
+    "mtime": 1793260980.8177092,
+    "seen": 1793345584.550045,
+    "ast_hash": "bd087d80b70bec05a43c745f29dc3ffc",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp": {
+    "mtime": 1793260980.8197184,
+    "seen": 1793345584.5500457,
+    "ast_hash": "7479edd56ab712609f030054bffd7263",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-xxhdpi/ic_launcher.webp": {
+    "mtime": 1793260980.825717,
+    "seen": 1793345584.5500464,
+    "ast_hash": "ea180e8d1a2e8300cc998b987266b736",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp": {
+    "mtime": 1793260980.8277187,
+    "seen": 1793345584.5500486,
+    "ast_hash": "947842742b29eeda80ee0805e1600366",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp": {
+    "mtime": 1793260980.8327167,
+    "seen": 1793345584.5500493,
+    "ast_hash": "54ab624970c86c2146e76b93f27586f7",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp": {
+    "mtime": 1793260980.8347187,
+    "seen": 1793345584.55005,
+    "ast_hash": "9ee591be72fb336861a8044086054daa",
+    "semantic_hash": ""
+  },
+  "ref/bebe153c531cb79044717544d971a39622a7e713-848109888.png": {
+    "mtime": 1793337590.3787928,
+    "seen": 1793345584.550051,
+    "ast_hash": "0b5df74847be6e3401278e91fca90aa0",
+    "semantic_hash": ""
+  },
+  "ref/screen-0-875008010.jpg": {
+    "mtime": 1793337580.627059,
+    "seen": 1793345584.550052,
+    "ast_hash": "38c094cb4859147da82a8adb2429cfd1",
+    "semantic_hash": ""
+  },
+  "ref/screen-4-3379086120.jpg": {
+    "mtime": 1793337584.8186045,
+    "seen": 1793345584.5500526,
+    "ast_hash": "f82ab4a1da1f437e6c35c0c8d071ba5e",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/data/DashboardRepository.kt": {
+    "mtime": 1793345851.0420637,
+    "seen": 1793346303.879158,
+    "ast_hash": "118e7313577bd2cde3c555e21c0ae317",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/AppIcons.kt": {
+    "mtime": 1793345880.6954074,
+    "seen": 1793346303.8791897,
+    "ast_hash": "27ded218cb4d72b4456fcab02e00cc5d",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/Dashboard.kt": {
+    "mtime": 1793346090.655923,
+    "seen": 1793346303.8791904,
+    "ast_hash": "aa884270272b69965ee065918051cb01",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/durtlesreborn/ui/LevelsScreen.kt": {
+    "mtime": 1793345973.8459785,
+    "seen": 1793346303.8791935,
+    "ast_hash": "6b73130d15060799746eb11a10498d18",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/example/durtlesreborn/data/DashboardTest.kt": {
+    "mtime": 1793346140.8587267,
+    "seen": 1793346303.8792045,
+    "ast_hash": "46ec76b58657d3d266fd135f00f71e5b",
+    "semantic_hash": ""
+  }
+}

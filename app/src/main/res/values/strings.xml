@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Durtles Reborn</string>
+    <string name="widget_description">Reviews and lessons waiting. Tap to open the app.</string>
+    <string name="widget_lessons">Lessons</string>
+    <string name="widget_reviews">Reviews</string>
+</resources>
