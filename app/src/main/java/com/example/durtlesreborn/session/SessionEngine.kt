@@ -104,6 +104,20 @@ class SessionEngine(
             return isDelayed || last.canUndo
         }
 
+    /**
+     * The SRS move of the item the current answer just completed, or null while it still has
+     * questions left or when the stage would not change (for example an already-burned item). It
+     * uses the same rule as the assignment patch, so the bubble and the saved progress agree.
+     */
+    fun finishedItemStageMove(): StageMove? {
+        if (!answered) return null
+        val item = currentQuestion?.item ?: return null
+        if (questions.any { it.item === item && !it.finished }) return null
+        val from = item.srsStageIndex
+        val to = item.newSrsStageIndex
+        return if (from == to) null else StageMove(from, to)
+    }
+
     /** Picks the next question, narrowing the candidates by the session's ordering options. */
     fun chooseQuestion() {
         if (currentQuestion != null || state != SessionState.ACTIVE) return

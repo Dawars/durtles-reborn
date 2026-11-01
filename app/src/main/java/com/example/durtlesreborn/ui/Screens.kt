@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -73,8 +74,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.durtlesreborn.data.HomeCounts
 import com.example.durtlesreborn.session.QuestionKind
+import com.example.durtlesreborn.session.StageMove
 import com.example.durtlesreborn.session.QuizCard
 import com.example.durtlesreborn.session.SessionType
+import kotlinx.coroutines.delay
 
 private const val TOKEN_PAGE = "https://www.wanikani.com/settings/personal_access_tokens"
 
@@ -202,11 +205,30 @@ private fun QuizScreen(
     BackHandler(onBack = onLeave)
     val card = state.card
     var showDetails by rememberSaveable(card.itemId, card.kind) { mutableStateOf(false) }
+    // Tapping the wrong-answer banner reveals the accepted answer above the characters instead of
+    // opening the full details; undo and a new question hide it again.
+    var revealed by rememberSaveable(card.itemId, card.kind) { mutableStateOf(false) }
+    LaunchedEffect(state.answered) { if (!state.answered) revealed = false }
     val progress = state.progress
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val keepKeyboard = state.keepKeyboardOpen
+    // The stage bubble shows once per completed item and clears itself, like a toast; pressing
+    // Next or undo clears it early because the state's move goes away.
+    var stageBubble by remember { mutableStateOf<StageMove?>(null) }
+    // Keyed by card as well as by the move: two different items can legitimately make the same
+    // move (Guru 1 → Guru 2 twice), and the bubble must appear for both.
+    LaunchedEffect(card.itemId, card.kind, state.stageMove) {
+        val move = state.stageMove
+        if (move == null) {
+            stageBubble = null
+        } else {
+            stageBubble = move
+            delay(2000)
+            stageBubble = null
+        }
+    }
     // Keep the cursor at the end: the input method rewrites the text as the user types.
     var field by remember(card.itemId, card.kind) { mutableStateOf(TextFieldValue("")) }
     if (field.text != state.input) field = TextFieldValue(state.input, TextRange(state.input.length))
@@ -247,7 +269,7 @@ private fun QuizScreen(
 
         // Details reveal the answer, so they open only after answering: swipe up, or tap the hint.
         val swipeThreshold = with(LocalDensity.current) { 64.dp.toPx() }
-        Column(
+        Box(
             Modifier.weight(1f).fillMaxWidth().pointerInput(state.answered) {
                 var travelled = 0f
                 detectVerticalDragGestures(
@@ -256,30 +278,60 @@ private fun QuizScreen(
                     onVerticalDrag = { _, delta -> travelled += delta },
                 )
             },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            val playable = state.answered && card.kind.hasAudio
-            // Furigana: the accepted reading above the characters, but only after a correct answer.
-            // A wrong answer must not have its reading given away above the character.
-            val confirmation = confirmationReading(state.answered, state.feedback?.correct, card.answers.confirmationReading)
-            if (confirmation != null) {
+            Column(
+                Modifier.align(Alignment.Center).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                val playable = state.answered && card.kind.hasAudio
+                // Furigana: the accepted reading above the characters, but only after a correct
+                // answer. A wrong answer keeps it hidden until the banner is tapped; then the
+                // accepted answer itself is shown there instead of opening the details sheet.
+                val revealedAnswer = if (state.answered && state.feedback?.correct == false && revealed) {
+                    acceptedAnswers(card)
+                } else {
+                    null
+                }
+                val confirmation = revealedAnswer
+                    ?: confirmationReading(state.answered, state.feedback?.correct, card.answers.confirmationReading)
+                if (confirmation != null) {
+                    Text(
+                        text = confirmation,
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        modifier = Modifier.semantics {
+                            contentDescription = if (revealedAnswer != null) "Answer: $confirmation" else "Reading: $confirmation"
+                        },
+                    )
+                }
                 Text(
-                    text = confirmation,
-                    fontSize = 22.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = card.characters,
+                    fontSize = if (card.characters.length > 3) 56.sp else 96.sp,
+                    color = kindColor(card.kind),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.semantics { contentDescription = "Reading: $confirmation" },
+                    modifier = Modifier.clickable(enabled = playable) { onPlayAudio(card.itemId) },
                 )
+                val subjectColor = kindColor(card.kind)
+                val answerColors = answerTypeColors(MaterialTheme.colorScheme, card.kind.reading)
+                // Two chips spell out the question: the subject on the left in its own colour, and
+                // what has to be typed on the right, so a reading is never confused with a meaning.
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    QuizChip(subjectLabel(card.kind), subjectColor, contentColorOn(subjectColor))
+                    QuizChip(answerLabel(card.kind), answerColors.background, answerColors.content)
+                }
             }
-            Text(
-                text = card.characters,
-                fontSize = if (card.characters.length > 3) 56.sp else 96.sp,
-                color = kindColor(card.kind),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.clickable(enabled = playable) { onPlayAudio(card.itemId) },
+            // Toast-like bubble above the characters: fades in when an answer completes a review
+            // item, then leaves on its own, so it never covers the item or the next question.
+            StageBubbleToast(
+                move = stageBubble,
+                modifier = Modifier.align(Alignment.Center).offset(y = (-146).dp),
             )
-            Text(prompt(card.kind), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (state.answered) {
             // The swipe-up gesture over the question still opens the details; the button is the
@@ -316,7 +368,7 @@ private fun QuizScreen(
                 }
             },
             singleLine = true,
-            placeholder = { Text(if (card.kanaInput) "答え" else "Your answer") },
+            placeholder = { Text(if (card.kanaInput) "答え" else "Meaning") },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
                 // Done answers the question. When the keyboard is meant to stay up, it is kept
@@ -342,7 +394,11 @@ private fun QuizScreen(
             },
         )
 
-        FeedbackPanel(state, onSubmit, onReveal = { showDetails = true })
+        FeedbackPanel(
+            state,
+            onSubmit,
+            onBannerTap = { correct -> if (correct) showDetails = true else revealed = true },
+        )
     }
 
     if (showDetails) ItemDetailsSheet(card.itemId, loadInfo, onDismiss = { showDetails = false }, onPlayAudio = onPlayAudio)
@@ -383,7 +439,7 @@ private fun QuizAction(label: String, enabled: Boolean, onClick: () -> Unit, mod
 }
 
 @Composable
-private fun FeedbackPanel(state: UiState.Quiz, onNext: () -> Unit, onReveal: () -> Unit) {
+private fun FeedbackPanel(state: UiState.Quiz, onNext: () -> Unit, onBannerTap: (correct: Boolean) -> Unit) {
     val feedback = state.feedback
     Column(Modifier.fillMaxWidth().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (feedback != null && feedback.retry) {
@@ -398,10 +454,13 @@ private fun FeedbackPanel(state: UiState.Quiz, onNext: () -> Unit, onReveal: () 
             val container = feedbackColors.container
             val content = feedbackColors.content
             Surface(
-                // The whole banner is a hidden hit target: tapping it reveals the answer and the
-                // full details, exactly like the "Tap to reveal answer" button.
+                // The banner is a hidden hit target. On a wrong answer it reveals the accepted
+                // answer above the characters; on a correct one it still opens the details sheet.
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                    .clickable(onClickLabel = "Reveal the answer", role = Role.Button, onClick = onReveal),
+                    .clickable(
+                        onClickLabel = if (correct) "Show the full details" else "Reveal the answer",
+                        role = Role.Button,
+                    ) { onBannerTap(correct) },
                 shape = RoundedCornerShape(16.dp),
                 color = container,
                 border = BorderStroke(1.dp, content.copy(alpha = 0.18f)),
@@ -434,7 +493,7 @@ private fun FeedbackPanel(state: UiState.Quiz, onNext: () -> Unit, onReveal: () 
                         Text(acceptedAnswers(state.card), style = MaterialTheme.typography.bodyLarge, color = content)
                     } else {
                         Text(
-                            "The answer is hidden. Tap above to reveal it.",
+                            "The answer is hidden. Tap this banner to reveal it above the item.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = content.copy(alpha = 0.8f),
                         )
@@ -460,14 +519,31 @@ private fun acceptedAnswers(card: QuizCard): String {
     }
 }
 
-private fun prompt(kind: QuestionKind) = when (kind) {
-    QuestionKind.RADICAL_NAME -> "Radical name"
-    QuestionKind.KANJI_MEANING -> "Kanji meaning"
-    QuestionKind.VOCAB_MEANING, QuestionKind.KANA_VOCAB_MEANING -> "Vocabulary meaning"
-    QuestionKind.KANJI_READING -> "Kanji reading"
-    QuestionKind.KANJI_ONYOMI -> "Kanji on’yomi"
-    QuestionKind.KANJI_KUNYOMI -> "Kanji kun’yomi"
-    QuestionKind.VOCAB_READING -> "Vocabulary reading"
+/** The subject chip: the kind of item being asked about. */
+private fun subjectLabel(kind: QuestionKind) = when (kind) {
+    QuestionKind.RADICAL_NAME -> "Radical"
+    QuestionKind.KANJI_MEANING,
+    QuestionKind.KANJI_READING,
+    QuestionKind.KANJI_ONYOMI,
+    QuestionKind.KANJI_KUNYOMI,
+    -> "Kanji"
+    else -> "Vocabulary"
+}
+
+/** The answer chip: a radical asks for its English name, so that counts as a meaning. */
+private fun answerLabel(kind: QuestionKind) = if (kind.reading) "Reading" else "Meaning"
+
+/** A small rounded label used under the item to say what kind of question this is. */
+@Composable
+private fun QuizChip(text: String, background: androidx.compose.ui.graphics.Color, content: androidx.compose.ui.graphics.Color) {
+    Surface(shape = RoundedCornerShape(50), color = background, contentColor = content) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+    }
 }
 
 @Composable

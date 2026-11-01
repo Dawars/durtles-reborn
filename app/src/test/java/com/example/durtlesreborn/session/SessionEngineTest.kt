@@ -79,6 +79,52 @@ class SessionEngineTest {
     }
 
     @Test
+    fun aFinishedItemReportsItsStageMove() {
+        val e = engine(listOf(item(1)))
+        e.chooseQuestion()
+        e.submit("x") { _, _ -> ok }
+        assertEquals(StageMove(2, 3), e.finishedItemStageMove())
+    }
+
+    @Test
+    fun aWrongAnswerOnlyMovesTheStageOnceTheItemIsFinallyCorrect() {
+        val a = item(1).apply { srsStageIndex = 5 } // Guru 1
+        val e = engine(listOf(a))
+        e.chooseQuestion()
+        e.submit("x") { _, _ -> wrong }
+        // A wrong question stays open and is asked again, so the item is not finished yet.
+        assertNull(e.finishedItemStageMove())
+        e.advance()
+        e.chooseQuestion()
+        e.submit("y") { _, _ -> ok }
+        assertEquals(StageMove(5, 3), e.finishedItemStageMove())
+    }
+
+    @Test
+    fun aTwoQuestionItemMovesOnlyWhenItsLastQuestionIsAnswered() {
+        val e = engine(
+            listOf(item(1)),
+            kinds = listOf(QuestionKind.KANJI_MEANING, QuestionKind.KANJI_READING),
+        )
+        e.chooseQuestion()
+        e.submit("x") { _, _ -> ok }
+        assertNull(e.finishedItemStageMove())
+        e.advance()
+        e.chooseQuestion()
+        e.submit("あ") { _, _ -> ok }
+        assertEquals(StageMove(2, 3), e.finishedItemStageMove())
+    }
+
+    @Test
+    fun aBurnedItemHasNoMoveLeft() {
+        val a = item(1).apply { srsStageIndex = 9 }
+        val e = engine(listOf(a))
+        e.chooseQuestion()
+        e.submit("x") { _, _ -> ok }
+        assertNull(e.finishedItemStageMove())
+    }
+
+    @Test
     fun delayedSessionMakesItemsPendingInsteadOfReporting() {
         val rec = Recorder()
         val a = item(1)

@@ -22,6 +22,13 @@ data class QuizFeedback(
     val correct: Boolean,
 )
 
+/**
+ * The SRS stage index an item moved between when its review was completed: the stage it was on
+ * before this review and the stage it will be on after. Indices match [SrsSystem] (1 = Apprentice 1
+ * … 9 = Burned), and the bubble turns them into names.
+ */
+data class StageMove(val from: Int, val to: Int)
+
 /** [totalItems] leaves out items dropped by wrapping up; [wrappingUp] is true once only started items remain. */
 data class QuizProgress(
     val remainingQuestions: Int,
@@ -86,6 +93,9 @@ class QuizController(
         engine.submitDontKnow()
         return QuizFeedback(AnswerVerdict.NOK_WITHOUT_RETRY, retry = false, correct = false)
     }
+
+    /** The stage move for the item this answer just completed, or null if it is not done yet. */
+    fun finishedStageMove(): StageMove? = engine.finishedItemStageMove()
 
     /** Number of items in the session and how many were answered without a single mistake. */
     fun summary(): Pair<Int, Int> {

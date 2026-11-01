@@ -32,6 +32,7 @@ import com.example.durtlesreborn.session.SessionSnapshot
 import com.example.durtlesreborn.session.SrsSystem
 import com.example.durtlesreborn.session.SessionSubject
 import com.example.durtlesreborn.session.SessionType
+import com.example.durtlesreborn.session.StageMove
 import com.example.durtlesreborn.session.SubjectOrder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -95,6 +96,8 @@ sealed interface UiState {
         val showAnswerOnWrong: Boolean = false,
         /** Keep the field focused and the keyboard up while the answer is shown, from `keep_keyboard_open`. */
         val keepKeyboardOpen: Boolean = true,
+        /** Set when this answer completed a review item: the stage it moved from and to. */
+        val stageMove: StageMove? = null,
     ) : UiState
 
     data class Lesson(
@@ -797,6 +800,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             answered = controller.answered,
             progress = controller.progress,
             canUndo = controller.canUndo,
+            stageMove = stageMoveAfterAnswer(controller),
         )
     }
 
@@ -806,7 +810,13 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val controller = quiz ?: return
         val feedback = controller.dontKnow()
         persist()
-        _state.value = current.copy(feedback = feedback, answered = true, progress = controller.progress, canUndo = controller.canUndo)
+        _state.value = current.copy(
+            feedback = feedback,
+            answered = true,
+            progress = controller.progress,
+            canUndo = controller.canUndo,
+            stageMove = stageMoveAfterAnswer(controller),
+        )
     }
 
     fun onSkip() {
@@ -834,8 +844,13 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             feedback = QuizFeedback(current.feedback!!.verdict, retry = false, correct = true),
             progress = controller.progress,
             canUndo = controller.canUndo,
+            stageMove = stageMoveAfterAnswer(controller),
         )
     }
+
+    /** The bubble is only shown for real reviews, and only when this answer completed the item. */
+    private fun stageMoveAfterAnswer(controller: QuizController): StageMove? =
+        if (sessionType == SessionType.REVIEW) controller.finishedStageMove() else null
 
     fun onWrapUp() {
         quiz?.wrapUp()

@@ -35,6 +35,30 @@ fun correctFeedbackColors(scheme: ColorScheme): FeedbackColors {
 fun wrongFeedbackColors(scheme: ColorScheme): FeedbackColors =
     FeedbackColors(container = scheme.errorContainer, content = scheme.onErrorContainer)
 
+/** The two colours of an answer-type chip (Meaning or Reading). */
+data class AnswerTypeColors(val background: Color, val content: Color)
+
+/** Blue for "Meaning", amber for "Reading", each nudged towards the theme's primary. */
+private const val MEANING_HUE = 210f
+private const val READING_HUE = 32f
+
+/**
+ * The chip beside the item that says what has to be typed: a cool blue for an English meaning and a
+ * warm amber for a kana reading. Both hues are nudged towards the theme's primary (at most 18°), and
+ * the tone follows the surface, so the two stay distinct from each other, from the subject chip, and
+ * still belong to the theme.
+ */
+fun answerTypeColors(scheme: ColorScheme, reading: Boolean): AnswerTypeColors {
+    val dark = scheme.background.luminance() < 0.5f
+    val base = if (reading) READING_HUE else MEANING_HUE
+    val hue = harmonize(base, hueOf(scheme.primary), 18f)
+    return if (dark) {
+        AnswerTypeColors(background = hsl(hue, 0.38f, 0.30f), content = hsl(hue, 0.50f, 0.90f))
+    } else {
+        AnswerTypeColors(background = hsl(hue, 0.58f, 0.88f), content = hsl(hue, 0.62f, 0.20f))
+    }
+}
+
 /** [source] hue in degrees moved towards [target] by at most [maxShift], taking the short way round. */
 internal fun harmonize(source: Float, target: Float, maxShift: Float): Float {
     // 0..360, then folded into -180..180; an exact 180 stays positive so the green leans teal.
