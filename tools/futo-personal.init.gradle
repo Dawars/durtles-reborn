@@ -1,0 +1,12 @@
+// Gives the personal FUTO build its own application ID, so it can sit next to the official one, and
+// builds native code for the phone's ABI only. An init script keeps this out of FUTO's build files.
+allprojects {
+    plugins.withId('com.android.application') {
+        android.productFlavors.configureEach { flavor ->
+            if (flavor.name == 'stable') {
+                flavor.applicationIdSuffix = '.personal'
+                flavor.ndk.abiFilters 'arm64-v8a'
+            }
+        }
+    }
+}

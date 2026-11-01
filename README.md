@@ -49,6 +49,8 @@ keyPassword=…
 
 That file and the keystore are git-ignored and must never be committed. Without it, `assembleRelease` still works and produces an **unsigned** APK, which is what a store that signs from source (such as F-Droid) expects.
 
+`tools/docker-setup.sh` and `tools/docker-build.sh` build the app in a container with no access to your home folder.
+
 ## Project layout
 
 ```
