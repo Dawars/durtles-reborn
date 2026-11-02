@@ -249,7 +249,8 @@ fun QuizScreen(
             ) {
                 QuizStatusBar(state, onMenu = { menuOpen = true })
                 val scale = 1f - 0.3f * detailsShown
-                val promptModifier = Modifier.align(Alignment.Center).padding(horizontal = 16.dp, vertical = 60.dp)
+                // Centred in the space below the status bar and the row of counts.
+                val promptModifier = Modifier.align(Alignment.Center).statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 61.dp, bottom = 8.dp)
                     .graphicsLayer { scaleX = scale; scaleY = scale }
                     .semantics { contentDescription = "Japanese ${card.kind.subjectPrompt()}. Question" }
                 if (card.kind == QuestionKind.RADICAL_NAME && isImageRadicalTitle(card.characters)) {
@@ -379,7 +380,8 @@ fun QuizScreen(
                 }
             }
             if (detailsShown > 0f) {
-                Box(Modifier.fillMaxWidth().weight(1.8f * detailsShown).background(tk.grouped)) {
+                // Keeps the answer row, with its + and next buttons, within reach of the thumb.
+                Box(Modifier.fillMaxWidth().weight(1.3f * detailsShown).background(tk.grouped)) {
                     val info by produceState<LessonInfo?>(null, card.itemId) { value = loadInfo(card.itemId) }
                     val loaded = info
                     if (loaded == null) {
@@ -566,7 +568,7 @@ private fun AnswerActions(
             }
         }
         Box(Modifier.size(width = 44.dp, height = 62.dp).clickable { open = true }.semantics { contentDescription = "Change this result" }, Alignment.Center) {
-            Image(painterResource(R.drawable.tk_add), null, Modifier.size(24.dp), colorFilter = ColorFilter.tint(TkFixed.tint))
+            Image(painterResource(R.drawable.tk_add), null, Modifier.size(32.dp), colorFilter = ColorFilter.tint(TkFixed.tint))
         }
         if (open) {
             TkOptionsSheet(

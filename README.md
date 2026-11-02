@@ -80,8 +80,8 @@ The screens are modelled on [Tsurukame](https://github.com/davidsansome/tsurukam
 | Screen layouts and behaviour; files with a "Based on Tsurukame" notice name their sources | `ios/` view controllers and table items | Rewritten in Kotlin and Compose, changed for Android |
 | Background, `res/drawable-nodpi/tk_launch_screen.jpg` | `launch_screen.imageset/launchscreen.jpg` | Resized and recompressed |
 | App icon, `res/drawable-nodpi/ic_launcher_foreground.png`, and avatar, `res/drawable-nodpi/tk_avatar.png` | App icon, `iTunesArtwork@3x.png` | Resized, and padded for the launcher |
-| `res/drawable-xxxhdpi/tk_srs_*`, `tk_thumb`, `tk_tick`, `tk_inbox`, `tk_add`, `tk_back` | Files of the same names in `ios/Resources/Assets.xcassets` | Unchanged |
-| `res/drawable-xxxhdpi/tk_menu`, `tk_cancel`, `tk_time`, `tk_volume`, `tk_search`, `tk_settings`, `tk_forward` | `baseline_*` and `ic_*` files in `ios/Resources/Assets.xcassets`, named like Google's [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0) | Unchanged |
+| `res/drawable-xxxhdpi/tk_srs_*` | Files of the same names in `ios/Resources/Assets.xcassets` | Unchanged |
+| `res/drawable/tk_add`, `tk_back`, `tk_cancel`, `tk_forward`, `tk_inbox`, `tk_menu`, `tk_search`, `tk_settings`, `tk_thumb`, `tk_tick`, `tk_time`, `tk_volume` | Vector versions of Google's [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0), replacing Tsurukame's bitmaps | Same names and positions as in Tsurukame |
 
 The app icon is Tsurukame's own. Apache 2.0 gives no rights to names or logos (section 6), so replace it before any store release. Tsurukame's repository does not name the artist of its turtle images. If you know who made them, please open an issue so they can be credited here.
 
