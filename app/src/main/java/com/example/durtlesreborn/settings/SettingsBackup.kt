@@ -76,6 +76,8 @@ object SettingsBackup {
             { s, v -> bool(v)?.let { s.copy(delayResultUpload = it) } }),
         Spec("max_review_session_size", "String", { it.maxReviewSessionSize.toString() },
             { s, v -> size(v)?.let { s.copy(maxReviewSessionSize = it) } }),
+        Spec("review_batch_size", "String", { it.reviewBatchSize.toString() },
+            { s, v -> v.trim().toIntOrNull()?.let { s.copy(reviewBatchSize = it.coerceIn(AppSettings.MIN_REVIEW_BATCH_SIZE, AppSettings.MAX_REVIEW_BATCH_SIZE)) } }),
         Spec("review_order", "String", { it.reviewOrder },
             { s, v -> if (com.example.durtlesreborn.session.SubjectOrder.fromName(v) != null) s.copy(reviewOrder = v) else null }),
         Spec("review_order_reversed", "Boolean", { it.reviewOrderReversed.toString() },

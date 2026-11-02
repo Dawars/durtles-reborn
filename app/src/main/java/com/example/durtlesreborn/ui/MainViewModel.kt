@@ -124,6 +124,7 @@ sealed interface UiState {
         val showSrsIndicator: Boolean = true,
         /** After a wrong answer, show everything instead of keeping back the other question's answer. */
         val revealFullAnswer: Boolean = true,
+        val dryRun: Boolean = false,
         /** The last item finished, as a small chip that opens it. */
         val previous: LessonChip? = null,
         /** Set on the first question after a correct answer. */
@@ -672,6 +673,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 backToBack = settings.reviewBackToBack,
                 readingFirst = settings.reviewReadingFirst,
                 meaningFirst = settings.reviewMeaningFirst,
+                maxStartedItems = settings.reviewBatchSize,
             )
             beginSession(subjects, config, settings)
         }
@@ -808,7 +810,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             val systems = snapshot.items.associate { it.id to it.srs.toSystem() }
             val dryRun = container.settingsStore.current().dryRun
             val sessionRecorder = newRecorder(type, dryRun) { systems.getValue(it) }
-            val engine = SessionEngine.restore(snapshot, random = { Random.nextInt(it) }, listener = sessionRecorder)
+            val batch = if (type == SessionType.REVIEW) container.settingsStore.current().reviewBatchSize else SessionEngine.DEFAULT_MAX_STARTED_ITEMS
+            val engine = SessionEngine.restore(snapshot, random = { Random.nextInt(it) }, listener = sessionRecorder, maxStartedItems = batch)
             if (engine == null) {
                 clearSaved()
                 sessionRecorder.finish()
@@ -826,9 +829,13 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    /** Leaves the current review or lesson session. It is saved and can be resumed from the home screen. */
+    /**
+     * Leaves the current review or lesson session. Finished items are sent now, so another device
+     * does not ask them again; the rest is saved and can be resumed from the home screen.
+     */
     fun onLeaveSession() {
         val sessionRecorder = recorder
+        quiz?.finish()
         val saving = persist()
         quiz = null
         recorder = null
@@ -836,6 +843,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             sessionRecorder?.finish()
             saving?.done?.await()
             refreshHome()
+            sync()
         }
     }
 
@@ -933,6 +941,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             switchKeyboard = sessionSwitchKeyboard,
             showSrsIndicator = sessionShowSrsIndicator,
             revealFullAnswer = sessionRevealFullAnswer,
+            dryRun = sessionDryRun,
             previous = lastFinishedItem,
             success = success,
             successRate = successRate(),

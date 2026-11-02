@@ -31,6 +31,8 @@ class SessionEngine(
     private val backToBack: Boolean = false,
     private val readingFirst: Boolean = false,
     private val meaningFirst: Boolean = false,
+    /** New items wait while this many are part-way through. */
+    private val maxStartedItems: Int = DEFAULT_MAX_STARTED_ITEMS,
     private val random: (Int) -> Int,
     private val clock: () -> Long = System::currentTimeMillis,
     private val listener: SessionListener,
@@ -101,7 +103,7 @@ class SessionEngine(
         get() {
             if (currentQuestion?.canUndo == true && answered) return true
             val last = history.lastOrNull() ?: return false
-            return isDelayed || last.canUndo
+            return last.canUndo || (isDelayed && !last.item.reported)
         }
 
     /**
@@ -136,7 +138,7 @@ class SessionEngine(
         if (backToBack) narrow { it.item.started }
         if (readingFirst) narrow { !it.item.hasPendingReadingAndMeaning || it.kind.reading }
         if (meaningFirst) narrow { !it.item.hasPendingReadingAndMeaning || it.kind.meaning }
-        if (numStartedItems >= 10) narrow { it.item.started }
+        if (numStartedItems >= maxStartedItems) narrow { it.item.started }
 
         val currentBucket = candidates.first().item.bucket
         val bucketItems = items.filter { it.bucket == currentBucket }
@@ -386,12 +388,15 @@ class SessionEngine(
     }
 
     companion object {
+        const val DEFAULT_MAX_STARTED_ITEMS = 10
+
         /** Rebuilds a saved session, or returns null if the snapshot does not hang together. */
         fun restore(
             snapshot: SessionSnapshot,
             random: (Int) -> Int,
             clock: () -> Long = System::currentTimeMillis,
             listener: SessionListener,
+            maxStartedItems: Int = DEFAULT_MAX_STARTED_ITEMS,
         ): SessionEngine? {
             val type = snapshot.sessionType ?: return null
             val state = SessionState.entries.firstOrNull { it.name == snapshot.state } ?: return null
@@ -420,7 +425,7 @@ class SessionEngine(
             val past = snapshot.history.map { question(it) ?: return null }
             val engine = SessionEngine(
                 type, items, queue, snapshot.delayed, snapshot.backToBack, snapshot.readingFirst, snapshot.meaningFirst,
-                random, clock, listener,
+                maxStartedItems, random, clock, listener,
             )
             engine.history.addAll(past)
             engine.state = state

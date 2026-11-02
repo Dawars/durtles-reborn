@@ -181,6 +181,7 @@ data class SessionConfig(
     val backToBack: Boolean = false,
     val readingFirst: Boolean = false,
     val meaningFirst: Boolean = false,
+    val maxStartedItems: Int = SessionEngine.DEFAULT_MAX_STARTED_ITEMS,
 )
 
 /**
@@ -248,6 +249,7 @@ object SessionPlanner {
             questions = questions,
             delayed = config.delayed,
             backToBack = config.backToBack,
+            maxStartedItems = config.maxStartedItems,
             readingFirst = config.readingFirst,
             meaningFirst = config.meaningFirst,
             random = { bound -> random.nextInt(bound) },

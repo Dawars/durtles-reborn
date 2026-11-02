@@ -49,6 +49,8 @@ data class AppSettings(
     /** Developer option: sessions run as normal but nothing is saved on the phone or sent to WaniKani. */
     val dryRun: Boolean = false,
     val maxReviewSessionSize: Int = 100,
+    /** How many reviews can be part-way through before a new one is asked, as Tsurukame's setting. */
+    val reviewBatchSize: Int = 5,
     /** The original's name, e.g. "SHUFFLE" or "LEVEL_THEN_TYPE". */
     val reviewOrder: String = "SHUFFLE",
     val reviewOrderReversed: Boolean = false,
@@ -81,6 +83,8 @@ data class AppSettings(
         get() = NotificationFrequency.entries.firstOrNull { it.name == notificationFrequency } ?: NotificationFrequency.ONLY_NEW_REVIEWS
 
     companion object {
+        const val MIN_REVIEW_BATCH_SIZE = 1
+        const val MAX_REVIEW_BATCH_SIZE = 25
         const val MIN_SESSION_SIZE = 1
         const val MAX_SESSION_SIZE = 500
     }
@@ -102,6 +106,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val delayResultUpload = booleanPreferencesKey("delay_result_upload")
         val dryRun = booleanPreferencesKey("dev_dry_run")
         val maxReviews = intPreferencesKey("max_review_session_size")
+        val reviewBatchSize = intPreferencesKey("review_batch_size")
         val order = stringPreferencesKey("review_order")
         val orderReversed = booleanPreferencesKey("review_order_reversed")
         val overdueFirst = booleanPreferencesKey("review_order_overdue_first")
@@ -137,6 +142,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             syncOnOpen = p[Keys.syncOnOpen] ?: d.syncOnOpen,
             delayResultUpload = p[Keys.delayResultUpload] ?: d.delayResultUpload,
             dryRun = p[Keys.dryRun] ?: d.dryRun,
+            reviewBatchSize = (p[Keys.reviewBatchSize] ?: d.reviewBatchSize).coerceIn(AppSettings.MIN_REVIEW_BATCH_SIZE, AppSettings.MAX_REVIEW_BATCH_SIZE),
             maxReviewSessionSize = (p[Keys.maxReviews] ?: d.maxReviewSessionSize)
                 .coerceIn(AppSettings.MIN_SESSION_SIZE, AppSettings.MAX_SESSION_SIZE),
             reviewOrder = p[Keys.order] ?: d.reviewOrder,
@@ -179,6 +185,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             p[Keys.delayResultUpload] = next.delayResultUpload
             p[Keys.dryRun] = next.dryRun
             p[Keys.maxReviews] = next.maxReviewSessionSize
+            p[Keys.reviewBatchSize] = next.reviewBatchSize
             p[Keys.order] = next.reviewOrder
             p[Keys.orderReversed] = next.reviewOrderReversed
             p[Keys.overdueFirst] = next.reviewOrderOverdueFirst

@@ -53,13 +53,14 @@ class SessionEngineTest {
         backToBack: Boolean = false,
         readingFirst: Boolean = false,
         meaningFirst: Boolean = false,
+        maxStartedItems: Int = SessionEngine.DEFAULT_MAX_STARTED_ITEMS,
     ): SessionEngine {
         val questions = items.flatMap { i -> kinds.map { Question(i, it) } }
         // Slots without a question are already done, as in the original.
         for (i in items) for (slot in 1..4) if (kinds.none { it.slot == slot }) i.setDone(slot, true)
         return SessionEngine(
             type, items, questions, delayed = delayed, backToBack = backToBack,
-            readingFirst = readingFirst, meaningFirst = meaningFirst,
+            readingFirst = readingFirst, meaningFirst = meaningFirst, maxStartedItems = maxStartedItems,
             random = { 0 }, clock = { 42L }, listener = listener,
         )
     }
@@ -203,6 +204,25 @@ class SessionEngineTest {
         )
         e.chooseQuestion()
         assertEquals(QuestionKind.KANJI_READING, e.currentQuestion!!.kind)
+    }
+
+    @Test
+    fun aNewItemWaitsWhileTheBatchIsFull() {
+        val waiting = item(1)
+        val first = item(2).also { it.numAnswers = 1 }
+        val second = item(3).also { it.numAnswers = 1 }
+        val full = engine(listOf(waiting, first, second), kinds = listOf(QuestionKind.KANJI_MEANING, QuestionKind.KANJI_READING), maxStartedItems = 2)
+        full.chooseQuestion()
+        assertEquals(2L, full.currentItem!!.id)
+    }
+
+    @Test
+    fun aNewItemIsAskedWhenTheBatchHasRoom() {
+        val waiting = item(1)
+        val first = item(2).also { it.numAnswers = 1 }
+        val room = engine(listOf(waiting, first), kinds = listOf(QuestionKind.KANJI_MEANING, QuestionKind.KANJI_READING), maxStartedItems = 2)
+        room.chooseQuestion()
+        assertEquals(1L, room.currentItem!!.id)
     }
 
     @Test

@@ -72,6 +72,31 @@ class SessionResumeTest {
     }
 
     @Test
+    fun leavingReportsFinishedItemsOnceAndKeepsTheRestForLater() {
+        val first = Recorder()
+        val engine = newEngine(first)
+        answer(engine, ok)
+        answer(engine, wrong)
+        engine.reportPending()
+        assertEquals(listOf(1L), first.reported)
+
+        val second = Recorder()
+        val resumed = roundTrip(engine, second)
+        assertEquals(3, resumed.remainingQuestions)
+        resumed.reportPending()
+        assertTrue(second.reported.isEmpty())
+    }
+
+    @Test
+    fun anItemSentOnLeavingCannotBeUndoneAfterResuming() {
+        val engine = newEngine(Recorder())
+        answer(engine, ok)
+        engine.reportPending()
+        val resumed = roundTrip(engine, Recorder())
+        assertFalse(resumed.canUndo)
+    }
+
+    @Test
     fun aWrongAnswerIsKeptSoTheItemIsAskedAgainAfterResuming() {
         val engine = newEngine(Recorder())
         answer(engine, wrong)

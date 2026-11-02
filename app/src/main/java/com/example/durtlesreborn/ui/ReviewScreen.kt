@@ -426,7 +426,7 @@ fun QuizScreen(
         if (confirmEnd) {
             TkActionSheet(
                 title = "End review session?",
-                message = "Your answers are saved, and you can carry on later from the home screen.",
+                message = if (state.dryRun) "This is a dry run, so nothing is saved or sent." else "Finished items are sent now. You can carry on with the rest later from the home screen.",
                 action = "End review session",
                 onAction = {
                     confirmEnd = false

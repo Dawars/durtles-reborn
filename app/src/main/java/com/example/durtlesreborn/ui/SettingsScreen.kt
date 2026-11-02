@@ -275,10 +275,13 @@ private fun ReviewsPage(
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     openChoice: (String, String, List<Pair<String, String>>, (String) -> Unit) -> Unit,
 ) {
-    TkSection("Reviews", footer = "With results sent at the end, you can leave a session and carry on later, online or offline.") {
+    TkSection("Reviews", footer = "With results sent at the end, finished items are also sent when you leave a session partway, and you can carry on with the rest later, online or offline.") {
         TkSwitchRow("Send results when the session ends", checked = s.delayResultUpload) { onChange { it.copy(delayResultUpload = !it.delayResultUpload) } }
         StepperRow("Reviews per session", s.maxReviewSessionSize, 10, AppSettings.MIN_SESSION_SIZE, AppSettings.MAX_SESSION_SIZE) { value ->
             onChange { it.copy(maxReviewSessionSize = value) }
+        }
+        StepperRow("Batch size", s.reviewBatchSize, 1, AppSettings.MIN_REVIEW_BATCH_SIZE, AppSettings.MAX_REVIEW_BATCH_SIZE) { value ->
+            onChange { it.copy(reviewBatchSize = value) }
         }
     }
     TkSection("Order") {
