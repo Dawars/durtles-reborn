@@ -13,6 +13,8 @@ import com.example.durtlesreborn.data.AppDatabase
 import com.example.durtlesreborn.data.DashboardRepository
 import com.example.durtlesreborn.data.FileSessionSnapshotStore
 import com.example.durtlesreborn.data.MIGRATION_1_2
+import com.example.durtlesreborn.data.MIGRATION_2_3
+import com.example.durtlesreborn.data.Synonyms
 import com.example.durtlesreborn.data.PitchRepository
 import com.example.durtlesreborn.data.SessionSnapshotStore
 import com.example.durtlesreborn.data.SearchRepository
@@ -44,7 +46,7 @@ class AppContainer(context: Context) {
     val sessionStore: SessionSnapshotStore = FileSessionSnapshotStore(java.io.File(appContext.filesDir, "session.json"))
 
     val database: AppDatabase = Room.databaseBuilder(appContext, AppDatabase::class.java, "durtles.db")
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
 
     val strokeRepository = StrokeRepository { appContext.assets.open("strokes.txt") }
@@ -126,6 +128,8 @@ class AppContainer(context: Context) {
         runCatching { notifier.update() }
         runCatching { WidgetUpdater.update(appContext) }
     }
+
+    val synonyms = Synonyms(database.studyMaterials(), database.pendingReviews())
 
     val repository = SessionRepository(
         subjects = database.subjects(),

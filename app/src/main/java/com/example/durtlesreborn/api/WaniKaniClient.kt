@@ -156,6 +156,14 @@ class WaniKaniClient(
         return execute(request) { it }
     }
 
+    /** Replaces the synonyms of study material [id], or creates it when [id] is null. */
+    suspend fun saveSynonyms(id: Long?, subjectId: Long, synonyms: List<String>): ApiResult<String> {
+        val body = StudyMaterialBody(subjectId.takeIf { id == null }, synonyms)
+        val json = apiJson.encodeToString(StudyMaterialRequest.serializer(), StudyMaterialRequest(body)).toRequestBody(JSON)
+        val builder = baseRequest(baseUrl.resolve(if (id == null) "study_materials" else "study_materials/$id")!!)
+        return execute(if (id == null) builder.post(json).build() else builder.put(json).build()) { it }
+    }
+
     private fun sameHostUrl(url: String): HttpUrl? {
         val parsed = url.toHttpUrl()
         return if (parsed.host == baseUrl.host && parsed.scheme == baseUrl.scheme && parsed.port == baseUrl.port) parsed else null

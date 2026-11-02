@@ -5,6 +5,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 private const val BATCH = 300
 
+/** Lets the queue hold a synonym waiting to be sent. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE pending_review ADD COLUMN synonym TEXT")
+    }
+}
+
 /** Adds the searchable text column and fills it for every stored subject. */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {

@@ -3,7 +3,7 @@ package com.example.durtlesreborn.data
 import com.example.durtlesreborn.session.SubjectKind
 
 /** A subject linked from another one, shown as a small tappable chip. */
-data class RelatedSubject(val id: Long, val title: String, val subtitle: String, val kind: SubjectKind?)
+data class RelatedSubject(val id: Long, val title: String, val subtitle: String, val kind: SubjectKind?, val level: Int? = null)
 
 /** [more] counts linked subjects left out to keep the list short. */
 data class RelatedGroup(val label: String, val items: List<RelatedSubject>, val more: Int = 0)
@@ -40,5 +40,6 @@ private fun relatedSubject(subject: SubjectEntity): RelatedSubject {
         title = subject.characters ?: subject.slug ?: "?",
         subtitle = listOfNotNull(reading, meaning).joinToString(" · "),
         kind = subjectKindOf(subject.type),
+        level = subject.level,
     )
 }

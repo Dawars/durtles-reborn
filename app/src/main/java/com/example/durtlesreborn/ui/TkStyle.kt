@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -466,8 +467,8 @@ fun SubjectRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (level != null) TkText("$level", color = Color.White, modifier = Modifier.width(30.dp))
-        TkText(title, size = 28.sp, color = Color.White, japanese = true, maxLines = 1, modifier = Modifier.weight(1f))
-        Column(Modifier.padding(start = 8.dp).weight(1f, fill = false), horizontalAlignment = Alignment.End) {
+        TkText(title, size = 28.sp, color = Color.White, japanese = true, maxLines = 1, modifier = Modifier.widthIn(max = 220.dp))
+        Column(Modifier.padding(start = 8.dp).weight(1f), horizontalAlignment = Alignment.End) {
             if (!reading.isNullOrEmpty()) {
                 TkText(reading, size = 14.sp, color = Color.White, japanese = true, weight = if (readingWrong) FontWeight.Bold else null, maxLines = 1, align = TextAlign.End)
             }
@@ -522,6 +523,31 @@ fun TkActionSheet(title: String, message: String, action: String, onAction: () -
                     Alignment.Center,
                 ) {
                     TkText("Cancel", size = 20.sp, color = TkFixed.tint, weight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+/** A choice of actions that slides up from the bottom. Tapping outside it closes it. */
+@Composable
+fun TkOptionsSheet(title: String, message: String, options: List<Pair<String, () -> Unit>>, onDismiss: () -> Unit) {
+    val tk = LocalTk.current
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
+            Alignment.BottomCenter,
+        ) {
+            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(8.dp).clip(RoundedCornerShape(14.dp)).background(tk.cell)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    TkText(title, size = 13.sp, color = tk.grey33, weight = FontWeight.SemiBold, align = TextAlign.Center)
+                    TkText(message, size = 13.sp, color = tk.grey33, align = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                }
+                for ((label, action) in options) {
+                    Box(Modifier.fillMaxWidth().height(0.5.dp).background(tk.separator))
+                    Box(Modifier.fillMaxWidth().height(57.dp).tkPressable(onClick = action), Alignment.Center) {
+                        TkText(label, size = 20.sp, color = TkFixed.tint)
+                    }
                 }
             }
         }

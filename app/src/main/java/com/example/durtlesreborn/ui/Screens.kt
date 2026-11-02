@@ -124,7 +124,7 @@ fun AppRoot(viewModel: MainViewModel) {
             is UiState.StatsView -> Box(Modifier.safeDrawingPadding()) { StatsScreen(s.stats, viewModel::closeStats) }
             is UiState.Quiz -> QuizScreen(
                 s, viewModel::onInputChange, viewModel::onSubmit, viewModel::onDontKnow,
-                viewModel::onSkip, viewModel::onUndo, viewModel::onIgnoreMistake, viewModel::onWrapUp,
+                viewModel::onSkip, viewModel::onUndo, viewModel::onIgnoreMistake, viewModel::onAskAgain, viewModel::onAddSynonym, viewModel::onWrapUp,
                 viewModel::onLeaveSession, viewModel::lessonInfo, viewModel::playAudio,
             )
             is UiState.Summary -> SummaryScreen(s, viewModel::closeSummary, viewModel::lessonInfo, viewModel::playAudio)

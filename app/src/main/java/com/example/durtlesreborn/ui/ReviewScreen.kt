@@ -47,8 +47,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -169,6 +167,8 @@ fun QuizScreen(
     onSkip: () -> Unit,
     onUndo: () -> Unit,
     onIgnoreMistake: () -> Unit,
+    onAskAgain: () -> Unit,
+    onAddSynonym: () -> Unit,
     onWrapUp: () -> Unit,
     onLeave: () -> Unit,
     loadInfo: suspend (Long) -> LessonInfo?,
@@ -339,10 +339,11 @@ fun QuizScreen(
                 if (wrong) {
                     AnswerActions(
                         canReveal = !showDetails,
-                        canUndo = state.canUndo,
+                        canAddSynonym = !state.card.kanaInput && state.input.isNotBlank(),
                         onReveal = { revealed = true },
-                        onUndo = onUndo,
                         onMarkCorrect = onIgnoreMistake,
+                        onAskAgain = onAskAgain,
+                        onAddSynonym = onAddSynonym,
                         modifier = Modifier.align(Alignment.CenterStart),
                     )
                 }
@@ -535,10 +536,11 @@ private fun TickCircle(color: Color) {
 @Composable
 private fun AnswerActions(
     canReveal: Boolean,
-    canUndo: Boolean,
+    canAddSynonym: Boolean,
     onReveal: () -> Unit,
-    onUndo: () -> Unit,
     onMarkCorrect: () -> Unit,
+    onAskAgain: () -> Unit,
+    onAddSynonym: () -> Unit,
     modifier: Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -550,10 +552,18 @@ private fun AnswerActions(
         }
         Box(Modifier.size(width = 44.dp, height = 62.dp).clickable { open = true }.semantics { contentDescription = "Change this result" }, Alignment.Center) {
             Image(painterResource(R.drawable.tk_add), null, Modifier.size(24.dp), colorFilter = ColorFilter.tint(TkFixed.tint))
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                DropdownMenuItem(text = { Text("Mark correct") }, onClick = { open = false; onMarkCorrect() })
-                DropdownMenuItem(text = { Text("Undo and try again") }, enabled = canUndo, onClick = { open = false; onUndo() })
-            }
+        }
+        if (open) {
+            TkOptionsSheet(
+                title = "Ignore incorrect answer?",
+                message = "Don't cheat! Only use this if you promise you knew the correct answer.",
+                options = buildList {
+                    add("My answer was correct" to { open = false; onMarkCorrect() })
+                    add("Ask again later" to { open = false; onAskAgain() })
+                    if (canAddSynonym) add("Add synonym" to { open = false; onAddSynonym() })
+                },
+                onDismiss = { open = false },
+            )
         }
     }
 }

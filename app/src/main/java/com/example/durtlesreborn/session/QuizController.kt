@@ -129,6 +129,9 @@ class QuizController(
 
     fun undo() = engine.undoAndRetry()
 
+    /** Takes back the last answer and asks that question again later. */
+    fun askAgain() = engine.undoAndPutBack()
+
     /** Marks a wrongly judged answer as correct. */
     fun ignoreMistake() = engine.ignore()
 

@@ -108,6 +108,16 @@ data class StudyMaterialData(
     @SerialName("meaning_synonyms") val meaningSynonyms: List<String> = emptyList(),
 )
 
+/** Body of POST and PUT /study_materials; the subject is only sent when creating one. */
+@Serializable
+data class StudyMaterialRequest(@SerialName("study_material") val studyMaterial: StudyMaterialBody)
+
+@Serializable
+data class StudyMaterialBody(
+    @SerialName("subject_id") val subjectId: Long? = null,
+    @SerialName("meaning_synonyms") val meaningSynonyms: List<String>,
+)
+
 /** Response to POST /reviews; the server returns the assignment as it is after the review. */
 @Serializable
 data class ReviewResponse(

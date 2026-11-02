@@ -84,6 +84,10 @@ interface StudyMaterialDao {
 
     @Query("SELECT * FROM study_material WHERE subjectId IN (:ids)")
     suspend fun bySubjects(ids: List<Long>): List<StudyMaterialEntity>
+
+    /** Removes the row made on the phone (negative id) once the server's own row replaces it. */
+    @Query("DELETE FROM study_material WHERE subjectId = :subjectId AND id < 0")
+    suspend fun deleteLocal(subjectId: Long)
 }
 
 @Dao

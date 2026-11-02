@@ -53,6 +53,7 @@ internal class FakeMaterials : StudyMaterialDao {
     override suspend fun upsert(materials: List<StudyMaterialEntity>) { materials.forEach { rows[it.id] = it } }
     override suspend fun bySubject(subjectId: Long) = rows.values.firstOrNull { it.subjectId == subjectId }
     override suspend fun bySubjects(ids: List<Long>) = rows.values.filter { it.subjectId in ids }
+    override suspend fun deleteLocal(subjectId: Long) { rows.values.removeAll { it.subjectId == subjectId && it.id < 0 } }
 }
 
 internal class FakeState : SyncStateDao {

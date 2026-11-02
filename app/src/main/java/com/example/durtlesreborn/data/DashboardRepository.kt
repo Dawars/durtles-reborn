@@ -25,13 +25,14 @@ data class LevelRow(
     val srsStage: Int?,
     val unlockedAt: Long?,
     val availableAt: Long?,
+    val passedAt: Long? = null,
 )
 
 @Dao
 interface LevelDao {
     @Query(
         "SELECT s.id AS id, s.type AS type, s.slug AS slug, s.characters AS characters, s.json AS json, " +
-            "a.srsStage AS srsStage, a.unlockedAt AS unlockedAt, a.availableAt AS availableAt " +
+            "a.srsStage AS srsStage, a.unlockedAt AS unlockedAt, a.availableAt AS availableAt, a.passedAt AS passedAt " +
             "FROM subject s LEFT JOIN assignment a ON a.subjectId = s.id WHERE s.hidden = 0 AND s.level = :level",
     )
     suspend fun items(level: Int): List<LevelRow>
@@ -57,6 +58,10 @@ data class LevelContent(
     val kanji: List<LevelTile>,
     val vocabulary: List<LevelTile>,
 )
+
+/** The tiles of an earlier level, or null once every item in it has been passed. */
+internal fun unfinishedLevelContent(level: Int, rows: List<LevelRow>): LevelContent? =
+    if (rows.all { it.passedAt != null }) null else buildLevelContent(level, rows)
 
 /** Reviews arriving in one hour, and how many will be waiting then in total. */
 data class HourRow(val startMillis: Long, val count: Int, val cumulative: Int)
@@ -114,6 +119,8 @@ data class Dashboard(
     /** One entry per month, oldest first, each with one entry per day of that month. */
     val activity: List<HeatMonth> = emptyList(),
     val vocabulary: List<LevelTile> = emptyList(),
+    /** The level before the current one, until everything in it has been passed. */
+    val previousLevel: LevelContent? = null,
 )
 
 internal fun lessonPositionOf(json: String): Int =
@@ -194,6 +201,7 @@ class DashboardRepository(
         val stageCounts = stats.stageCounts(maxLevel)
         val progress = userLevel?.let { level -> stats.levelKanji(level).let { LevelProgress(level, it.total, it.passed) } }
         val rows = userLevel?.let { levels.items(it) }.orEmpty()
+        val previousRows = userLevel?.takeIf { it > 1 }?.let { levels.items(it - 1) }.orEmpty()
         val username = state.get(SyncEngine.KEY_USERNAME)
         val heatmapStart = today.withDayOfMonth(1).minusMonths((HEATMAP_MONTHS - 1).toLong())
         val progressTimes = stats.progressTimes(heatmapStart.atStartOfDay(zone).toInstant().toEpochMilli())
@@ -210,6 +218,7 @@ class DashboardRepository(
                 breakdown = StatsMath.breakdown(stageCounts),
                 activity = activityMonths(progressTimes, today, zone),
                 vocabulary = content.vocabulary,
+                previousLevel = userLevel?.let { unfinishedLevelContent(it - 1, previousRows) },
             )
         }
     }

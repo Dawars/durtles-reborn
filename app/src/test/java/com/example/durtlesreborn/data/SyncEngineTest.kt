@@ -240,4 +240,56 @@ class SyncEngineTest {
         engine().sync()
         assertEquals(95, statistics.rows[20]!!.percentageCorrect)
     }
+
+    private val noMaterials get() = json(page())
+
+    private fun material(id: Long, subject: Long, vararg synonyms: String) =
+        """{"id":$id,"object":"study_material","data_updated_at":"2026-03-08T00:00:00.000000Z","data":{"subject_id":$subject,""" +
+            """"meaning_synonyms":[${synonyms.joinToString(",") { "\"$it\"" }}]}}"""
+
+    @Test
+    fun aSynonymOnANewSubjectIsPostedAndTheLocalRowReplaced() = runBlocking {
+        overrides["/v2/study_materials"] = noMaterials
+        Synonyms(materials, pending).add(7, " hot mountain ")
+        assertEquals(listOf("hot mountain"), materials.bySubject(7)!!.synonyms())
+        assertEquals(-7L, materials.bySubject(7)!!.id)
+        reviewResponses += json(material(40, 7, "hot mountain"), 201)
+        engine().sync()
+        val request = requests.first { it.method == "POST" }
+        assertEquals("/v2/study_materials", request.requestUrl!!.encodedPath)
+        assertEquals("""{"study_material":{"subject_id":7,"meaning_synonyms":["hot mountain"]}}""", request.body.readUtf8())
+        assertEquals(40L, materials.bySubject(7)!!.id)
+        assertEquals(1, materials.rows.values.count { it.subjectId == 7L })
+        assertEquals(0, pending.count())
+    }
+
+    @Test
+    fun aSynonymKeepsWhatTheServerAlreadyHas() = runBlocking {
+        overrides["/v2/study_materials"] = json(page(material(30, 1, "other device")))
+        Synonyms(materials, pending).add(1, "mine")
+        reviewResponses += json(material(30, 1, "other device", "mine"))
+        engine().sync()
+        val request = requests.first { it.method == "PUT" }
+        assertEquals("/v2/study_materials/30", request.requestUrl!!.encodedPath)
+        assertEquals("""{"study_material":{"meaning_synonyms":["other device","mine"]}}""", request.body.readUtf8())
+    }
+
+    @Test
+    fun aRefusedSynonymIsForgotten() = runBlocking {
+        overrides["/v2/study_materials"] = noMaterials
+        Synonyms(materials, pending).add(7, "nope")
+        reviewResponses += json("{}", 422)
+        engine().sync()
+        assertEquals(null, materials.bySubject(7))
+        assertEquals(0, pending.count())
+    }
+
+    @Test
+    fun aSynonymWaitsInTheQueueWhenTheServerFails() = runBlocking {
+        overrides["/v2/study_materials"] = json("{}", 500)
+        Synonyms(materials, pending).add(7, "later")
+        assertEquals(false, engine().sync().ok)
+        assertEquals(1, pending.count())
+        assertEquals(listOf("later"), materials.bySubject(7)!!.synonyms())
+    }
 }

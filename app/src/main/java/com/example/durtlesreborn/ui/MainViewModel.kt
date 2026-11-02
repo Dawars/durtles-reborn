@@ -928,6 +928,22 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         showNextCard()
     }
 
+    /** Takes back a wrong answer and asks the question again later in the session. */
+    fun onAskAgain() {
+        val controller = quiz ?: return
+        if (!controller.canUndo) return
+        answeredQuestions = (answeredQuestions - 1).coerceAtLeast(0)
+        controller.askAgain()
+        showNextCard()
+    }
+
+    /** Accepts a wrong meaning answer and saves it as the user's own synonym. A dry run only accepts it. */
+    fun onAddSynonym() {
+        val current = _state.value as? UiState.Quiz ?: return
+        if (!sessionDryRun) viewModelScope.launch { container.synonyms.add(current.card.itemId, current.input) }
+        onIgnoreMistake()
+    }
+
     /** Accepts an answer the app judged wrong. */
     fun onIgnoreMistake() {
         val current = _state.value as? UiState.Quiz ?: return

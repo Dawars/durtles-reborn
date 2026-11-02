@@ -193,12 +193,15 @@ private fun HomeTable(d: Dashboard, saved: SavedSession?, now: Long, a: Dashboar
         val next = LevelEstimates.nextLevelUpReview(d.radicals, d.kanji, level, now)
         TkRow("Next level-up review", value = next?.let { LevelEstimates.format(it, now) } ?: "N/A")
     }
-    TkSection("Current level") {
-        Row(Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 16.dp)) {
-            LevelPie(d.radicals, tk.radical[1], Modifier.weight(1f))
-            LevelPie(d.kanji, tk.kanji[1], Modifier.weight(1f))
-            LevelPie(d.vocabulary, tk.vocabulary[1], Modifier.weight(1f))
+    d.previousLevel?.let { previous ->
+        TkSection("Previous level (${previous.level})") {
+            LevelPies(previous.radicals, previous.kanji, previous.vocabulary)
+            TkRow("Show remaining", chevron = true, onClick = { a.openRemaining(previous.level) })
+            TkRow("Show all", chevron = true, onClick = { a.openLevels(previous.level) })
         }
+    }
+    TkSection(if (d.previousLevel != null) "Current level (${d.level})" else "Current level") {
+        LevelPies(d.radicals, d.kanji, d.vocabulary)
         val remaining = LevelEstimates.timeRemaining(d.radicals, d.kanji, d.level ?: 1, now)
         if (remaining != null) {
             TkRow(
@@ -352,6 +355,16 @@ private fun DrawScope.drawLabel(
  * One level pie: locked items in light grey, lessons in darker grey, Apprentice in a paler shade of
  * the subject's colour and Guru or better in the full colour.
  */
+@Composable
+private fun LevelPies(radicals: List<LevelTile>, kanji: List<LevelTile>, vocabulary: List<LevelTile>) {
+    val tk = LocalTk.current
+    Row(Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 16.dp)) {
+        LevelPie(radicals, tk.radical[1], Modifier.weight(1f))
+        LevelPie(kanji, tk.kanji[1], Modifier.weight(1f))
+        LevelPie(vocabulary, tk.vocabulary[1], Modifier.weight(1f))
+    }
+}
+
 @Composable
 private fun LevelPie(tiles: List<LevelTile>, base: Color, modifier: Modifier) {
     val tk = LocalTk.current

@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
         SyncStateEntity::class,
         SrsSystemEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

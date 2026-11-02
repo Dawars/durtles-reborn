@@ -109,6 +109,7 @@ class SyncEngine(
                     // The server refuses reviews it cannot accept (already reviewed elsewhere,
                     // not available yet). The server wins, so the local copy is dropped.
                     result.code == 422 -> {
+                        if (item.kind == PendingKind.ADD_SYNONYM.name) forgetSynonym(item)
                         pending.delete(item.id)
                         rejected++
                     }
@@ -138,6 +139,7 @@ class SyncEngine(
                 client.startAssignment(assignmentId, lateTimestamp(item.createdAt))
             }
         }
+        PendingKind.ADD_SYNONYM.name -> sendSynonym(item)
         else -> client.postReview(
             ReviewBody(
                 subjectId = item.subjectId.takeIf { it > 0 },
@@ -147,6 +149,27 @@ class SyncEngine(
                 createdAt = lateTimestamp(item.createdAt),
             ),
         )
+    }
+
+    /** Reads the server's list first, so a synonym added on another device is kept. */
+    private suspend fun sendSynonym(item: PendingReview): ApiResult<String> {
+        val found = client.all("study_materials", StudyMaterialData.serializer(), query = mapOf("subject_ids" to item.subjectId.toString()))
+        if (found !is ApiResult.Success) {
+            @Suppress("UNCHECKED_CAST")
+            return found as ApiResult<String>
+        }
+        val remote = found.value.firstOrNull()
+        val known = remote?.data?.meaningSynonyms.orEmpty()
+        val synonym = item.synonym.orEmpty()
+        val merged = if (known.any { it.equals(synonym, ignoreCase = true) }) known else known + synonym
+        return client.saveSynonyms(remote?.id, item.subjectId, merged)
+    }
+
+    /** The server refused the synonym, so the phone stops accepting it too. */
+    private suspend fun forgetSynonym(item: PendingReview) {
+        val row = materials.bySubject(item.subjectId) ?: return
+        if (row.id < 0) materials.deleteLocal(item.subjectId)
+        else materials.upsert(listOf(row.withSynonyms(row.synonyms() - item.synonym.orEmpty())))
     }
 
     private suspend fun findAssignmentId(subjectId: Long): Long? {
@@ -164,6 +187,14 @@ class SyncEngine(
         updated?.reviewStatistic?.let { statistics.upsert(listOf(it.toEntity())) }
         // PUT /assignments/{id}/start answers with the assignment itself.
         val asObject = json as? JsonObject ?: return
+        if (asObject["object"]?.jsonPrimitive?.contentOrNull == "study_material") {
+            runCatching { apiJson.decodeFromString(Resource.serializer(StudyMaterialData.serializer()), responseBody) }
+                .getOrNull()?.let {
+                    materials.deleteLocal(it.data.subjectId)
+                    materials.upsert(listOf(it.toEntity()))
+                }
+            return
+        }
         if (updated == null && asObject["object"]?.jsonPrimitive?.contentOrNull == "assignment") {
             runCatching { apiJson.decodeFromString(Resource.serializer(AssignmentData.serializer()), responseBody) }
                 .getOrNull()?.let { assignments.upsert(listOf(it.toEntity())) }

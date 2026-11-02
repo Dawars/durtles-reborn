@@ -331,6 +331,7 @@ private fun RelatedRow(item: RelatedSubject, onOpen: ((Long) -> Unit)?) {
         item.kind,
         reading = parts.takeIf { it.size > 1 }?.first(),
         meaning = parts.last(),
+        level = item.level,
         onClick = onOpen?.let { { it(item.id) } },
     )
 }

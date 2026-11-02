@@ -166,4 +166,12 @@ class DashboardTest {
         assertEquals(3, repo.maxLevel())
         assertEquals(AlertContext(), AlertContext())
     }
+
+    @Test
+    fun anEarlierLevelIsShownUntilEverythingInItIsPassed() {
+        val passed = row(1, "kanji", "一", "one", 1, "One", "いち").copy(passedAt = 5)
+        val unpassed = row(2, "kanji", "二", "two", 2, "Two", "に")
+        assertEquals(28, unfinishedLevelContent(28, listOf(passed, unpassed))?.level)
+        assertEquals(null, unfinishedLevelContent(28, listOf(passed)))
+    }
 }

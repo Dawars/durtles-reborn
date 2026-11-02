@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
 
-enum class PendingKind { REVIEW, START_LESSON }
+enum class PendingKind { REVIEW, START_LESSON, ADD_SYNONYM }
 
 /**
  * A finished review or lesson waiting to be sent. It is written before anything is sent, so a
@@ -25,6 +25,8 @@ data class PendingReview(
     val createdAt: Long,
     /** Failed send attempts, for back-off and diagnostics. */
     val attempts: Int = 0,
+    /** The text to add, for [PendingKind.ADD_SYNONYM]. */
+    val synonym: String? = null,
 )
 
 @Dao
