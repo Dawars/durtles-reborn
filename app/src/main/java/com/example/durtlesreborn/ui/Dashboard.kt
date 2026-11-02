@@ -3,6 +3,7 @@
 // Rewritten in Kotlin and changed for this app.
 package com.example.durtlesreborn.ui
 
+import com.example.durtlesreborn.data.PracticeKind
 import android.text.format.DateFormat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -83,6 +84,8 @@ import kotlin.math.sin
 data class DashboardActions(
     val startReviews: () -> Unit,
     val startLessons: () -> Unit,
+    val openLessonPicker: () -> Unit,
+    val startPractice: (PracticeKind) -> Unit,
     val openSearch: () -> Unit,
     val openLevels: (Int?) -> Unit,
     val openRemaining: (Int?) -> Unit,
@@ -185,6 +188,7 @@ private fun HomeTable(d: Dashboard, saved: SavedSession?, now: Long, a: Dashboar
     TkSection("Currently available") {
         if (saved != null) ResumeRows(saved, a)
         CountRow("Lessons", d.counts.lessonsAvailable, a.startLessons)
+        if (d.counts.lessonsAvailable > 0) TkRow("Lesson Picker", chevron = true, onClick = a.openLessonPicker)
         CountRow("Reviews", d.counts.reviewsDue, a.startReviews)
     }
     TkSection("Upcoming reviews") {
@@ -192,6 +196,9 @@ private fun HomeTable(d: Dashboard, saved: SavedSession?, now: Long, a: Dashboar
         val level = d.level ?: 1
         val next = LevelEstimates.nextLevelUpReview(d.radicals, d.kanji, level, now)
         TkRow("Next level-up review", value = next?.let { LevelEstimates.format(it, now) } ?: "N/A")
+        PracticeRow("Review recent lessons", d.practice.recentLessons, PracticeKind.RECENT_LESSONS, a)
+        PracticeRow("Review apprentice leeches", d.practice.apprenticeLeeches, PracticeKind.APPRENTICE_LEECHES, a)
+        PracticeRow("Review all leeches", d.practice.allLeeches, PracticeKind.ALL_LEECHES, a)
     }
     d.previousLevel?.let { previous ->
         TkSection("Previous level (${previous.level})") {
@@ -224,6 +231,7 @@ private fun HomeTable(d: Dashboard, saved: SavedSession?, now: Long, a: Dashboar
                 leading = { StageIcon(group) },
             )
         }
+        if (d.practice.burned > 0) TkRow("Review burned items", chevron = true, onClick = { a.startPractice(PracticeKind.BURNED) })
         TkRow("Statistics", chevron = true, onClick = a.openStats)
     }
     if (d.activity.isNotEmpty()) {
@@ -232,6 +240,11 @@ private fun HomeTable(d: Dashboard, saved: SavedSession?, now: Long, a: Dashboar
 }
 
 /** A count that opens a session, greyed out at zero. */
+@Composable
+private fun PracticeRow(title: String, count: Int, kind: PracticeKind, a: DashboardActions) {
+    if (count > 0) TkRow(title, value = "$count", chevron = true, onClick = { a.startPractice(kind) })
+}
+
 @Composable
 private fun CountRow(title: String, count: Int, onClick: () -> Unit) {
     TkRow(title, value = "$count", chevron = true, enabled = count > 0, onClick = onClick)

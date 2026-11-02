@@ -9,6 +9,9 @@ interface SubjectDao {
     @Upsert
     suspend fun upsert(subjects: List<SubjectEntity>)
 
+    @Query("SELECT * FROM subject WHERE type = 'radical' AND characters IS NULL AND hidden = 0")
+    suspend fun imageRadicals(): List<SubjectEntity>
+
     @Query("SELECT * FROM subject WHERE id = :id")
     suspend fun byId(id: Long): SubjectEntity?
 
@@ -123,7 +126,8 @@ data class SearchRow(
 interface SearchDao {
     /**
      * Subjects up to [maxGrantedLevel] whose search text contains [q1] or [q2] (empty matches
-     * everything), filtered by type, level and SRS stage range ([stageMin] -1 means any).
+     * everything), filtered by type, level and SRS stage range ([stageMin] -1 means any). A whole
+     * line of the search text matching comes first, then the start of a line, then by level.
      */
     @Query(
         "SELECT s.id AS id, s.type AS type, s.level AS level, s.characters AS characters, s.slug AS slug, " +
@@ -132,7 +136,11 @@ interface SearchDao {
             "AND s.type IN (:types) " +
             "AND (:q1 = '' OR s.searchText LIKE '%' || :q1 || '%' OR (:q2 != '' AND s.searchText LIKE '%' || :q2 || '%')) " +
             "AND (:stageMin = -1 OR COALESCE(a.srsStage, 0) BETWEEN :stageMin AND :stageMax) " +
-            "ORDER BY (s.characters = :q1 OR s.slug = :q1) DESC, s.level, s.id LIMIT :limit",
+            "ORDER BY CASE WHEN (char(10) || s.searchText || char(10)) LIKE '%' || char(10) || :q1 || char(10) || '%' " +
+                "OR (:q2 != '' AND (char(10) || s.searchText || char(10)) LIKE '%' || char(10) || :q2 || char(10) || '%') THEN 0 " +
+                "WHEN (char(10) || s.searchText) LIKE '%' || char(10) || :q1 || '%' " +
+                "OR (:q2 != '' AND (char(10) || s.searchText) LIKE '%' || char(10) || :q2 || '%') THEN 1 ELSE 2 END, " +
+                "s.level, s.id LIMIT :limit",
     )
     suspend fun search(
         q1: String,

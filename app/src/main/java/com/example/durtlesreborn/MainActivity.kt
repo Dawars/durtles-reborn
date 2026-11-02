@@ -1,5 +1,6 @@
 package com.example.durtlesreborn
 
+import com.example.durtlesreborn.ui.LocalRadicalImages
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -36,6 +37,11 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch { (application as DurtlesApp).container.notifier.update() }
     }
 
+    override fun onStart() {
+        super.onStart()
+        viewModel.onAppForeground()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -56,6 +62,7 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalStrokeRepository provides (application as DurtlesApp).container.strokeRepository,
                     LocalBlurContextSentences provides settings.blurContextSentences,
+                    LocalRadicalImages provides (application as DurtlesApp).container.radicalImages,
                 ) {
                     AppRoot(viewModel)
                 }

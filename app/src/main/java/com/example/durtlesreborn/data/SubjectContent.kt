@@ -18,6 +18,15 @@ import kotlinx.serialization.json.longOrNull
 class SubjectContent(private val data: JsonObject) {
     internal val rawData: JsonObject get() = data
 
+    /** Every accepted meaning, for a list row. */
+    val meaningsText: String get() = meanings.filter { it.acceptedAnswer }.joinToString(", ") { it.text }
+
+    /** The picture of an image-only radical. WaniKani's PNG links return 403, so only the SVG is used. */
+    val characterImageUrl: String?
+        get() = (data["character_images"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
+            .firstOrNull { (it["content_type"] as? JsonPrimitive)?.contentOrNull == "image/svg+xml" && (it["metadata"] as? JsonObject)?.get("inline_styles")?.let { flag -> (flag as? JsonPrimitive)?.booleanOrNull } == true }
+            ?.let { (it["url"] as? JsonPrimitive)?.contentOrNull }
+
     val srsSystemId: Long? get() = (data["spaced_repetition_system_id"] as? JsonPrimitive)?.longOrNull
 
     private fun objects(name: String): List<JsonObject> =

@@ -91,7 +91,7 @@ class SearchRepository(
                 kind = kind,
                 level = row.level,
                 title = row.characters ?: row.slug ?: "?",
-                meaning = content.meanings.firstOrNull { it.acceptedAnswer }?.text.orEmpty(),
+                meaning = content.meaningsText,
                 reading = content.readings.firstOrNull { it.acceptedAnswer }?.reading
                     ?: content.readings.firstOrNull()?.reading,
                 stage = StageGroup.of(row.srsStage),

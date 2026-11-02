@@ -28,4 +28,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun alerts(): AlertDao
     abstract fun stats(): StatsDao
     abstract fun levels(): LevelDao
+    abstract fun practice(): PracticeDao
 }

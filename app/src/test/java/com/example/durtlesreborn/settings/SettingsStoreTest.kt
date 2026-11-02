@@ -21,7 +21,7 @@ class SettingsStoreTest {
         val s = SettingsStore(dataStore()).current()
         assertEquals(CloseEnoughAction.SILENTLY_ACCEPT, s.closeEnoughAction)
         assertFalse(s.enableBackgroundSync)
-        assertFalse(s.syncOnOpen)
+        assertTrue(s.syncOnOpen)
         assertFalse(s.dryRun)
         assertFalse(s.requireOnYomiInKatakana)
         assertTrue(s.showAnswerOnWrong)

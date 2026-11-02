@@ -1,5 +1,7 @@
 package com.example.durtlesreborn.ui
 
+import com.example.durtlesreborn.data.PracticeKind
+import com.example.durtlesreborn.data.LessonChoice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -120,6 +122,10 @@ sealed interface UiState {
         /** Ask the keyboard for Japanese or English to suit the question, from `auto_switch_keyboard`. */
         val switchKeyboard: Boolean = true,
         val showSrsIndicator: Boolean = true,
+        /** After a wrong answer, show everything instead of keeping back the other question's answer. */
+        val revealFullAnswer: Boolean = true,
+        /** The last item finished, as a small chip that opens it. */
+        val previous: LessonChip? = null,
         /** Set on the first question after a correct answer. */
         val success: QuizSuccess? = null,
         /** Share of the questions in this session answered correctly, in percent. */
@@ -153,6 +159,9 @@ sealed interface UiState {
     ) : UiState
 
     data class Detail(val detail: ItemDetail) : UiState
+
+    /** Lessons to choose from, by level, as in Tsurukame's Lesson Picker. */
+    data class LessonPicker(val choices: List<LessonChoice>, val selected: Set<Long> = emptySet()) : UiState
 
     /** Every item in one SRS group; [items] is null while they load. */
     data class StageItems(
@@ -190,6 +199,10 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private var recorder: SessionRecorder? = null
     private var sessionType = SessionType.REVIEW
     private var sessionDryRun = false
+    private var lastForegroundSync = 0L
+    private var radicalImagesFetched = false
+    private var sessionRevealFullAnswer = true
+    private var lastFinishedItem: LessonChip? = null
     private var sessionShowAnswerOnWrong = false
     private var sessionKeepKeyboardOpen = true
     private var sessionSwitchKeyboard = true
@@ -556,6 +569,21 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    /** Coming back to the app shows what is due now, and fetches changes if it has been a while. */
+    fun onAppForeground() {
+        val current = _state.value as? UiState.Home ?: return
+        if (current.syncing) return
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            if (container.settingsStore.current().syncOnOpen && now - lastForegroundSync > FOREGROUND_SYNC_GAP_MILLIS) {
+                lastForegroundSync = now
+                sync()
+            } else {
+                refreshHomeSafely(current.message)
+            }
+        }
+    }
+
     fun sync() {
         val current = _state.value as? UiState.Home ?: return
         if (current.syncing) return
@@ -612,13 +640,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         val saved = savedSnapshot()?.let { s -> s.sessionType?.let { SavedSession(it, s.doneItems, s.totalItems) } }
         val settings = container.settingsStore.current()
         _state.value = UiState.Home(
-            container.dashboardRepository.load(),
+            container.dashboardRepository.load().copy(practice = container.practiceRepository.counts()),
             saved = saved,
             dryRun = settings.dryRun,
             message = message,
             textStageLabels = settings.textStageLabels,
         )
         refreshNotification()
+        ensureRadicalImages()
         // Reaching a new level (or a fresh install) fetches the levels that are not on the phone yet.
         ensureAudioUpToCurrentLevel()
     }
@@ -683,6 +712,65 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 maxSize = settings.maxSelfStudySessionSize,
             )
             beginSession(subjects, config, settings)
+        }
+    }
+
+    /** A practice session like Tsurukame's: a random selection, and nothing is saved or sent. */
+    fun startPractice(kind: PracticeKind) {
+        viewModelScope.launch {
+            val settings = container.settingsStore.current()
+            val ids = container.practiceRepository.ids(kind).shuffled().take(settings.maxSelfStudySessionSize)
+            val subjects = container.repository.selfStudySubjects(ids)
+            if (subjects.isEmpty()) return@launch refreshHome("Nothing to practise right now.")
+            val config = SessionConfig(
+                type = SessionType.SELF_STUDY,
+                order = SubjectOrder.SHUFFLE,
+                maxSize = settings.maxSelfStudySessionSize,
+                backToBack = true,
+            )
+            beginSession(subjects, config, settings)
+        }
+    }
+
+    fun openLessonPicker() {
+        viewModelScope.launch {
+            savedSnapshot()?.sessionType?.let { saved ->
+                return@launch refreshHome("Finish or discard your saved ${saved.label()} session first.")
+            }
+            val choices = container.repository.lessonChoices()
+            if (choices.isEmpty()) return@launch refreshHome("No lessons are available.")
+            _state.value = UiState.LessonPicker(choices)
+        }
+    }
+
+    fun toggleLessonChoice(id: Long) {
+        _state.update { current ->
+            if (current !is UiState.LessonPicker) return@update current
+            current.copy(selected = if (id in current.selected) current.selected - id else current.selected + id)
+        }
+    }
+
+    fun closeLessonPicker() {
+        viewModelScope.launch { refreshHomeSafely() }
+    }
+
+    fun startPickedLessons() {
+        val picked = (_state.value as? UiState.LessonPicker)?.selected.orEmpty()
+        if (picked.isEmpty()) return
+        viewModelScope.launch {
+            val subjects = container.repository.availableLessons().filter { it.id in picked }
+            val settings = container.settingsStore.current()
+            val config = SessionConfig(type = SessionType.LESSON, order = settings.lessonSubjectOrder, maxSize = subjects.size)
+            beginSession(subjects, config, settings)
+        }
+    }
+
+    /** Image-only radicals have no characters, so their pictures are fetched for offline use. A failure is retried later. */
+    private fun ensureRadicalImages() {
+        if (radicalImagesFetched) return
+        radicalImagesFetched = true
+        viewModelScope.launch {
+            radicalImagesFetched = runCatching { container.radicalImages.fetchMissing(container.repository.imageRadicals()) }.getOrDefault(false)
         }
     }
 
@@ -769,6 +857,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         sessionKeepKeyboardOpen = settings.keepKeyboardOpen
         sessionSwitchKeyboard = settings.autoSwitchKeyboard
         sessionShowSrsIndicator = settings.showSrsIndicator
+        sessionRevealFullAnswer = settings.revealFullAnswer
+        lastFinishedItem = null
         answeredQuestions = 0
         correctQuestions = 0
         lessonChips = null
@@ -842,6 +932,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             keepKeyboardOpen = sessionKeepKeyboardOpen,
             switchKeyboard = sessionSwitchKeyboard,
             showSrsIndicator = sessionShowSrsIndicator,
+            revealFullAnswer = sessionRevealFullAnswer,
+            previous = lastFinishedItem,
             success = success,
             successRate = successRate(),
         )
@@ -852,6 +944,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     /** Tsurukame goes straight to the next question after a correct answer. */
     private fun advanceAfterCorrect(current: UiState.Quiz, controller: QuizController, note: String?) {
         val finished = controller.progress.answeredItems > current.progress.answeredItems
+        if (finished) lastFinishedItem = LessonChip(current.card.itemId, current.card.characters, current.card.kind.subjectKind())
         val success = QuizSuccess(++lastSuccessId, finished, stageMoveAfterAnswer(controller), note)
         controller.next()
         showNextCard(success)
@@ -1022,4 +1115,7 @@ private const val SEARCH_DEBOUNCE_MILLIS = 250L
 private const val STAGE_ITEM_LIMIT = 10_000
 
 /** How many matching subjects a self-study quiz picks from. */
+/** Coming back to the app sooner than this only refreshes what is on the phone. */
+private const val FOREGROUND_SYNC_GAP_MILLIS = 60_000L
+
 private const val SELF_STUDY_CANDIDATES = 2000

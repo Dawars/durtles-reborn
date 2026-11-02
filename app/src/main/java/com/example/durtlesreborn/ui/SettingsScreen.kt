@@ -314,6 +314,9 @@ private fun ReviewsPage(
         TkSwitchRow("Show answer immediately", "After a wrong answer. Off: tap the eye to reveal it.", s.showAnswerOnWrong) {
             onChange { it.copy(showAnswerOnWrong = !it.showAnswerOnWrong) }
         }
+        TkSwitchRow("Reveal full answer", "Instead of hiding it behind a \"Show all information\" button", s.revealFullAnswer) {
+            onChange { it.copy(revealFullAnswer = !it.revealFullAnswer) }
+        }
         TkSwitchRow("Keep the keyboard open between answers", checked = s.keepKeyboardOpen) { onChange { it.copy(keepKeyboardOpen = !it.keepKeyboardOpen) } }
         TkRow(
             "Answer that is close enough",

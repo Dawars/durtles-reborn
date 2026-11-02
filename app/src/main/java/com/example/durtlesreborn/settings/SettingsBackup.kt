@@ -64,6 +64,8 @@ object SettingsBackup {
             { s, v -> bool(v)?.let { s.copy(requireOnYomiInKatakana = it) } }),
         Spec("show_answer_on_wrong", "Boolean", { it.showAnswerOnWrong.toString() },
             { s, v -> bool(v)?.let { s.copy(showAnswerOnWrong = it) } }),
+        Spec("reveal_full_answer", "Boolean", { it.revealFullAnswer.toString() },
+            { s, v -> bool(v)?.let { s.copy(revealFullAnswer = it) } }),
         Spec("keep_keyboard_open", "Boolean", { it.keepKeyboardOpen.toString() },
             { s, v -> bool(v)?.let { s.copy(keepKeyboardOpen = it) } }),
         Spec("enable_background_sync", "Boolean", { it.enableBackgroundSync.toString() },

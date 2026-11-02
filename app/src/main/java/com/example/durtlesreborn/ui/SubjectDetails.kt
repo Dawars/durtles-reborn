@@ -112,17 +112,21 @@ fun SubjectHeader(info: LessonInfo, onBack: (() -> Unit)?, onPlayAudio: ((Long) 
     val tk = LocalTk.current
     val canPlay = info.hasAudio && onPlayAudio != null
     Box(Modifier.fillMaxWidth().background(Brush.verticalGradient(tk.gradient(info.kind))).statusBarsPadding().height(74.dp)) {
-        TkText(
-            info.title,
-            size = 40.sp,
-            color = Color.White,
-            japanese = true,
-            align = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp)
-                .clickable(enabled = canPlay) { onPlayAudio?.invoke(info.id) }
-                .semantics { contentDescription = if (canPlay) "Play the pronunciation of ${info.title}" else info.title },
-        )
+        if (info.kind == SubjectKind.RADICAL && isImageRadicalTitle(info.title)) {
+            RadicalGlyph(info.title, 44.dp, Modifier.align(Alignment.Center))
+        } else {
+            TkText(
+                info.title,
+                size = 40.sp,
+                color = Color.White,
+                japanese = true,
+                align = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp)
+                    .clickable(enabled = canPlay) { onPlayAudio?.invoke(info.id) }
+                    .semantics { contentDescription = if (canPlay) "Play the pronunciation of ${info.title}" else info.title },
+            )
+        }
         if (onBack != null) {
             Box(Modifier.align(Alignment.TopStart).size(56.dp).clickable(onClick = onBack).semantics { contentDescription = "Back" }, Alignment.Center) {
                 Image(painterResource(R.drawable.tk_back), null, Modifier.size(24.dp), colorFilter = ColorFilter.tint(Color.White))

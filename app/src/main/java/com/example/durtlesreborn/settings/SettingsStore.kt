@@ -27,6 +27,8 @@ data class AppSettings(
      * the details sheet (swipe up on the question) is how it is looked at.
      */
     val showAnswerOnWrong: Boolean = true,
+    /** After a wrong answer, also show the answer to the item's other question. */
+    val revealFullAnswer: Boolean = true,
     /**
      * Keep the answer field focused and the keyboard up while the answer is shown, so the next
      * answer needs no extra tap. Off collapses the keyboard after every answer.
@@ -41,7 +43,7 @@ data class AppSettings(
     /** Example sentence translations stay blurred until tapped. */
     val blurContextSentences: Boolean = true,
     val enableBackgroundSync: Boolean = false,
-    val syncOnOpen: Boolean = false,
+    val syncOnOpen: Boolean = true,
     /** Hold results until the session is finished instead of sending each item as it is done. */
     val delayResultUpload: Boolean = true,
     /** Developer option: sessions run as normal but nothing is saved on the phone or sent to WaniKani. */
@@ -89,6 +91,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val closeEnough = stringPreferencesKey("close_enough_action")
         val onYomiKatakana = booleanPreferencesKey("require_onyomi_in_katakana")
         val showAnswerOnWrong = booleanPreferencesKey("show_answer_on_wrong")
+        val revealFullAnswer = booleanPreferencesKey("reveal_full_answer")
         val autoSwitchKeyboard = booleanPreferencesKey("auto_switch_keyboard")
         val showSrsIndicator = booleanPreferencesKey("show_srs_indicator")
         val interfaceStyle = stringPreferencesKey("interface_style")
@@ -124,6 +127,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
                 ?: d.closeEnoughAction,
             requireOnYomiInKatakana = p[Keys.onYomiKatakana] ?: d.requireOnYomiInKatakana,
             showAnswerOnWrong = p[Keys.showAnswerOnWrong] ?: d.showAnswerOnWrong,
+            revealFullAnswer = p[Keys.revealFullAnswer] ?: d.revealFullAnswer,
             autoSwitchKeyboard = p[Keys.autoSwitchKeyboard] ?: d.autoSwitchKeyboard,
             showSrsIndicator = p[Keys.showSrsIndicator] ?: d.showSrsIndicator,
             interfaceStyle = p[Keys.interfaceStyle] ?: d.interfaceStyle,
@@ -164,6 +168,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
             p[Keys.closeEnough] = next.closeEnoughAction.name
             p[Keys.onYomiKatakana] = next.requireOnYomiInKatakana
             p[Keys.showAnswerOnWrong] = next.showAnswerOnWrong
+            p[Keys.revealFullAnswer] = next.revealFullAnswer
             p[Keys.autoSwitchKeyboard] = next.autoSwitchKeyboard
             p[Keys.showSrsIndicator] = next.showSrsIndicator
             p[Keys.interfaceStyle] = next.interfaceStyle

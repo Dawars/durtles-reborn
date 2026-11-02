@@ -77,6 +77,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     coreLibraryDesugaring(libs.android.desugar.jdk.libs)
     implementation(libs.okhttp)
+    implementation(libs.androidsvg)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.okhttp.mockwebserver)

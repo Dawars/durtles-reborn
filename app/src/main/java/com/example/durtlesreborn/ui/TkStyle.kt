@@ -3,6 +3,10 @@
 // Rewritten in Kotlin and changed for this app.
 package com.example.durtlesreborn.ui
 
+import com.example.durtlesreborn.radicals.RadicalImages
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
@@ -181,6 +185,25 @@ val LocalTk = staticCompositionLocalOf { LightTk }
 
 /** Whether example sentence translations start blurred, from `blur_context_sentences`. */
 val LocalBlurContextSentences = staticCompositionLocalOf { true }
+
+/** Where the pictures of image-only radicals come from. */
+val LocalRadicalImages = staticCompositionLocalOf<RadicalImages?> { null }
+
+/** A subject with no characters is titled by its slug, which is plain ASCII and names the answer. */
+internal fun isImageRadicalTitle(title: String) = title.all { it.code < 128 }
+
+/** The picture of an image-only radical. Until it is on the phone, a question mark: never the slug. */
+@Composable
+fun RadicalGlyph(slug: String, size: Dp, modifier: Modifier = Modifier) {
+    val images = LocalRadicalImages.current
+    val bitmap by produceState<Bitmap?>(null, slug, images) { value = images?.bitmap(slug) }
+    val loaded = bitmap
+    if (loaded != null) {
+        Image(loaded.asImageBitmap(), null, modifier.size(size), colorFilter = ColorFilter.tint(Color.White))
+    } else {
+        Box(modifier.size(size), Alignment.Center) { TkText("?", size = (size.value * 0.7f).sp, color = Color.White, maxLines = 1) }
+    }
+}
 
 /** Japanese text is tagged so Android picks Japanese glyphs for the kanji, not the Chinese forms. */
 val JapaneseLocale = LocaleList("ja-JP")
@@ -467,7 +490,11 @@ fun SubjectRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (level != null) TkText("$level", color = Color.White, modifier = Modifier.width(30.dp))
-        TkText(title, size = 28.sp, color = Color.White, japanese = true, maxLines = 1, modifier = Modifier.widthIn(max = 220.dp))
+        if (kind == SubjectKind.RADICAL && isImageRadicalTitle(title)) {
+            RadicalGlyph(title, 32.dp)
+        } else {
+            TkText(title, size = 28.sp, color = Color.White, japanese = true, maxLines = 1, modifier = Modifier.widthIn(max = 220.dp))
+        }
         Column(Modifier.padding(start = 8.dp).weight(1f), horizontalAlignment = Alignment.End) {
             if (!reading.isNullOrEmpty()) {
                 TkText(reading, size = 14.sp, color = Color.White, japanese = true, weight = if (readingWrong) FontWeight.Bold else null, maxLines = 1, align = TextAlign.End)
@@ -491,7 +518,11 @@ fun SubjectChipBox(
 ) {
     val base = modifier.clip(RoundedCornerShape(6.dp)).background(Brush.verticalGradient(if (dimmed) gradient.map { it.copy(alpha = 0.5f) } else gradient))
     Box((if (onClick != null) base.clickable(onClick = onClick) else base).heightIn(min = 28.dp).padding(horizontal = 6.dp), Alignment.Center) {
-        TkText(text, size = 16.sp, color = Color.White, japanese = japanese, maxLines = 1)
+        if (japanese && isImageRadicalTitle(text)) {
+            RadicalGlyph(text, 20.dp)
+        } else {
+            TkText(text, size = 16.sp, color = Color.White, japanese = japanese, maxLines = 1)
+        }
     }
 }
 

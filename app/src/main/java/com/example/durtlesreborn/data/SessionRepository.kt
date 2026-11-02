@@ -1,5 +1,7 @@
 package com.example.durtlesreborn.data
 
+import com.example.durtlesreborn.session.SubjectKind
+import com.example.durtlesreborn.radicals.RadicalImage
 import com.example.durtlesreborn.answer.SubjectAnswers
 import com.example.durtlesreborn.session.SessionSubject
 import com.example.durtlesreborn.session.SrsSystem
@@ -23,6 +25,9 @@ data class AudioClip(val url: String, val level: Int)
  * Reads the local database and prepares what sessions and the quiz need. Only subjects up to the
  * user's `max_level_granted` are offered, so an unsubscribed account never sees locked levels.
  */
+/** A lesson offered in the Lesson Picker. */
+data class LessonChoice(val id: Long, val title: String, val kind: SubjectKind?, val level: Int)
+
 class SessionRepository(
     private val subjects: SubjectDao,
     private val assignments: AssignmentDao,
@@ -53,6 +58,27 @@ class SessionRepository(
     suspend fun dueReviews(): List<SessionSubject> = toSessionSubjects(assignments.reviewsDue(clock()))
 
     suspend fun availableLessons(): List<SessionSubject> = toSessionSubjects(assignments.lessonsAvailable())
+
+    /** Every lesson that can be started, in the order WaniKani teaches them. */
+    suspend fun lessonChoices(): List<LessonChoice> {
+        val maxLevel = maxLevel()
+        val ids = assignments.lessonsAvailable().map { it.subjectId }
+        val found = ids.chunked(500).flatMap { subjects.byIds(it) }.filter { !it.hidden && it.level <= maxLevel }
+        return withContext(Dispatchers.Default) {
+            found.sortedWith(compareBy({ it.level }, { lessonPositionOf(it.json) }, { it.id })).map {
+                LessonChoice(it.id, it.characters ?: it.slug ?: "?", subjectKindOf(it.type), it.level)
+            }
+        }
+    }
+
+    /** The radicals drawn as a picture, with where to fetch it. */
+    suspend fun imageRadicals(): List<RadicalImage> {
+        val maxLevel = maxLevel()
+        return subjects.imageRadicals().filter { it.level <= maxLevel }.mapNotNull { subject ->
+            val slug = subject.slug ?: return@mapNotNull null
+            SubjectContent.parse(subject.json).characterImageUrl?.let { RadicalImage(slug, it) }
+        }
+    }
 
     suspend fun counts(): HomeCounts {
         val due = dueReviews().size

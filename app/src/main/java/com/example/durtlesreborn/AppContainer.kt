@@ -1,5 +1,7 @@
 package com.example.durtlesreborn
 
+import com.example.durtlesreborn.radicals.RadicalImages
+import com.example.durtlesreborn.data.PracticeRepository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -130,6 +132,10 @@ class AppContainer(context: Context) {
     }
 
     val synonyms = Synonyms(database.studyMaterials(), database.pendingReviews())
+
+    val practiceRepository = PracticeRepository(database.practice(), database.syncState())
+
+    val radicalImages = RadicalImages(http, java.io.File(appContext.filesDir, "radicals"))
 
     val repository = SessionRepository(
         subjects = database.subjects(),

@@ -121,6 +121,7 @@ data class Dashboard(
     val vocabulary: List<LevelTile> = emptyList(),
     /** The level before the current one, until everything in it has been passed. */
     val previousLevel: LevelContent? = null,
+    val practice: PracticeCounts = PracticeCounts(),
 )
 
 internal fun lessonPositionOf(json: String): Int =
@@ -137,7 +138,7 @@ internal fun buildLevelContent(level: Int, rows: List<LevelRow>): LevelContent {
             title = row.characters ?: row.slug ?: "?",
             reading = if (kind == SubjectKind.RADICAL) null else content.readings.firstOrNull { it.acceptedAnswer }?.reading
                 ?: content.readings.firstOrNull()?.reading,
-            meaning = content.meanings.firstOrNull { it.acceptedAnswer }?.text.orEmpty(),
+            meaning = content.meaningsText,
             stage = row.srsStage,
             unlocked = row.unlockedAt != null,
             nextReviewAt = row.availableAt,

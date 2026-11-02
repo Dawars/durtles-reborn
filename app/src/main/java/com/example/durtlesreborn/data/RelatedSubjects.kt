@@ -33,7 +33,7 @@ internal suspend fun SubjectDao.relatedGroups(type: String, content: SubjectCont
 
 private fun relatedSubject(subject: SubjectEntity): RelatedSubject {
     val content = SubjectContent.parse(subject.json)
-    val meaning = content.meanings.firstOrNull { it.acceptedAnswer }?.text
+    val meaning = content.meaningsText.ifEmpty { null }
     val reading = content.readings.firstOrNull { it.acceptedAnswer }?.reading
     return RelatedSubject(
         id = subject.id,

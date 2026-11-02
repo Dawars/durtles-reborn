@@ -18,6 +18,7 @@ internal class FakePending : PendingReviewDao {
 }
 
 internal class FakeSubjects : SubjectDao {
+    override suspend fun imageRadicals() = emptyList<SubjectEntity>()
     val rows = mutableMapOf<Long, SubjectEntity>()
     override suspend fun upsert(subjects: List<SubjectEntity>) { subjects.forEach { rows[it.id] = it } }
     override suspend fun byId(id: Long) = rows[id]

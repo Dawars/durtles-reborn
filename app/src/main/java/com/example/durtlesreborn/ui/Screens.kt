@@ -73,7 +73,7 @@ fun AppRoot(viewModel: MainViewModel) {
         controller.isAppearanceLightNavigationBars = !tk.isDark
     }
     // Back from a sub-screen goes to where it was opened from instead of closing the app.
-    BackHandler(enabled = state is UiState.Settings || state is UiState.AudioLevels || state is UiState.Search || state is UiState.Detail || state is UiState.StatsView || state is UiState.Levels || state is UiState.StageItems) {
+    BackHandler(enabled = state is UiState.Settings || state is UiState.AudioLevels || state is UiState.Search || state is UiState.Detail || state is UiState.StatsView || state is UiState.Levels || state is UiState.StageItems || state is UiState.LessonPicker) {
         when (state) {
             is UiState.Settings -> viewModel.closeSettings()
             is UiState.AudioLevels -> viewModel.closeAudioLevels()
@@ -82,6 +82,7 @@ fun AppRoot(viewModel: MainViewModel) {
             is UiState.StatsView -> viewModel.closeStats()
             is UiState.Levels -> viewModel.closeLevels()
             is UiState.StageItems -> viewModel.closeStage()
+            is UiState.LessonPicker -> viewModel.closeLessonPicker()
             else -> Unit
         }
     }
@@ -94,6 +95,8 @@ fun AppRoot(viewModel: MainViewModel) {
                 DashboardActions(
                     startReviews = viewModel::startReviews,
                     startLessons = viewModel::startLessons,
+                    openLessonPicker = viewModel::openLessonPicker,
+                    startPractice = viewModel::startPractice,
                     openSearch = viewModel::openSearch,
                     openLevels = { viewModel.openLevels(it) },
                     openRemaining = { viewModel.openLevels(it, remainingOnly = true) },
@@ -106,6 +109,7 @@ fun AppRoot(viewModel: MainViewModel) {
                     discardSession = viewModel::discardSavedSession,
                 ),
             )
+            is UiState.LessonPicker -> LessonPickerScreen(s, viewModel::toggleLessonChoice, viewModel::startPickedLessons, viewModel::closeLessonPicker)
             is UiState.StageItems -> StageScreen(s, viewModel::setStageKind, viewModel::openDetail, viewModel::closeStage)
             is UiState.Levels -> LevelsScreen(s, viewModel::ensureLevel, viewModel::openDetail, viewModel::closeLevels)
             is UiState.Lesson -> LessonScreen(s, viewModel::onLessonGoTo, viewModel::onLeaveSession, viewModel::lessonInfo, viewModel::playAudio)

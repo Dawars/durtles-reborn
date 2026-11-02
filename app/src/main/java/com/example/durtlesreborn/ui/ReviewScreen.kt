@@ -115,7 +115,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
-private fun QuestionKind.subjectKind() = when (this) {
+internal fun QuestionKind.subjectKind() = when (this) {
     QuestionKind.RADICAL_NAME -> SubjectKind.RADICAL
     QuestionKind.KANJI_MEANING, QuestionKind.KANJI_READING, QuestionKind.KANJI_ONYOMI, QuestionKind.KANJI_KUNYOMI -> SubjectKind.KANJI
     else -> SubjectKind.VOCABULARY
@@ -249,21 +249,36 @@ fun QuizScreen(
             ) {
                 QuizStatusBar(state, onMenu = { menuOpen = true })
                 val scale = 1f - 0.3f * detailsShown
-                BasicText(
-                    card.characters,
-                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 16.dp, vertical = 60.dp)
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
-                        .semantics { contentDescription = "Japanese ${card.kind.subjectPrompt()}. Question" },
-                    style = TextStyle(
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        localeList = JapaneseLocale,
-                        shadow = Shadow(Color.Black.copy(alpha = 0.2f), Offset(0f, with(density) { 1.dp.toPx() }), with(density) { 4.dp.toPx() }),
-                    ),
-                    maxLines = 2,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 24.sp, maxFontSize = 60.sp, stepSize = 2.sp),
-                )
+                val promptModifier = Modifier.align(Alignment.Center).padding(horizontal = 16.dp, vertical = 60.dp)
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .semantics { contentDescription = "Japanese ${card.kind.subjectPrompt()}. Question" }
+                if (card.kind == QuestionKind.RADICAL_NAME && isImageRadicalTitle(card.characters)) {
+                    RadicalGlyph(card.characters, 72.dp, promptModifier)
+                } else {
+                    BasicText(
+                        card.characters,
+                        modifier = promptModifier,
+                        style = TextStyle(
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            localeList = JapaneseLocale,
+                            shadow = Shadow(Color.Black.copy(alpha = 0.2f), Offset(0f, with(density) { 1.dp.toPx() }), with(density) { 4.dp.toPx() }),
+                        ),
+                        maxLines = 2,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 24.sp, maxFontSize = 60.sp, stepSize = 2.sp),
+                    )
+                }
                 QuizNotice(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp))
+                if (!showDetails) {
+                    state.previous?.let { previous ->
+                        SubjectChipBox(
+                            previous.title,
+                            tk.gradient(previous.kind),
+                            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 12.dp),
+                            onClick = { openSubject = previous.id },
+                        )
+                    }
+                }
             }
             Box(Modifier.fillMaxWidth().height(40.dp).background(Brush.verticalGradient(listOf(promptTop, promptBottom)))) {
                 Text(
@@ -374,8 +389,8 @@ fun QuizScreen(
                             loaded,
                             onOpen = { openSubject = it },
                             onPlayAudio = onPlayAudio,
-                            hideMeaning = !card.kind.meaning && !card.meaningAttempted,
-                            hideReading = !card.kind.reading && !card.readingAttempted,
+                            hideMeaning = !state.revealFullAnswer && !card.kind.meaning && !card.meaningAttempted,
+                            hideReading = !state.revealFullAnswer && !card.kind.reading && !card.readingAttempted,
                         )
                     }
                 }
