@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -110,7 +111,10 @@ fun SearchScreen(
             // Self-study quizzes whatever the search matches; results are not sent to WaniKani.
             TkBarButton("Quiz these", enabled = state.results.isNotEmpty() && !state.searching, onClick = onSelfStudy)
         }
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(0.5.dp)) {
+        // A lazy list stays on the item it was showing, which would hide better matches above it.
+        val listState = rememberLazyListState()
+        LaunchedEffect(state.results) { listState.scrollToItem(0) }
+        LazyColumn(Modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(0.5.dp)) {
             items(state.results, key = { it.id }) { r ->
                 SubjectRow(r.title, r.kind, r.reading, r.meaning, level = r.level, onClick = { onOpen(r.id) })
             }
